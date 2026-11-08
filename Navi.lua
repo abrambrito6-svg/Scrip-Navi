@@ -1,6 +1,6 @@
 --[[
     NEXUS-HUB | DUELOS -- By Navi
-    v3: completo + minimizar + botón flotante
+    v4: filtro de rango, aimbot que no bloquea, FOV con color, fondo visible
 --]]
 
 local Players           = game:GetService("Players")
@@ -30,13 +30,18 @@ local Theme = {
 
 local Config = {
     aimBot          = false,
-    aimSmooth       = 0.25,
+    aimSmooth       = 0.18,
     aimFov          = 120,
     aimPart         = "Head",
+    aimNearOnly     = true,
+    aimRange        = 120,
+    pauseOnDrag     = true,
     prediction      = 0.0,
     silentAim       = false,
     silentFov       = 150,
+    silentRange     = 400,
     showFov         = true,
+    fovColor        = Color3.fromRGB(178, 120, 255),
     autoShoot       = false,
     shootDelay      = 0.15,
     autoEquip       = true,
@@ -44,9 +49,11 @@ local Config = {
     espName         = false,
     espDistance     = false,
     espTracer       = false,
+    espRange        = 250,
     espTeamCheck    = true,
     invisible       = false,
     safeMode        = true,
+    bgOpacity       = 0.5,
     farmEvent       = false,
     farmStreak      = false,
 }
@@ -111,6 +118,21 @@ local function isAlive(plr)
     return hum ~= nil and hum.Health > 0
 end
 
+local function distanceTo(plr)
+    local hrp = getChar()
+    hrp = hrp and hrp:FindFirstChild("HumanoidRootPart")
+    local other = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp or not other then return 9999 end
+    return (hrp.Position - other.Position).Magnitude
+end
+
+-- Solo jugadores dentro de la partida (no lobby)
+local function inRange(plr, range)
+    if plr == LocalPlayer or not isAlive(plr) then return false end
+    if Config.espTeamCheck and plr.Team and plr.Team == LocalPlayer.Team then return false end
+    return distanceTo(plr) <= range
+end
+
 local function loadAsset(url, name)
     local ok, res = pcall(function()
         if not isfile(name) then writefile(name, game:HttpGet(url)) end
@@ -147,6 +169,8 @@ BgLayer.BackgroundTransparency = 1
 BgLayer.ZIndex = 1
 BgLayer.Parent = Main
 
+local bgVeil
+
 local bgAsset = loadAsset(BG_URL, "navi_bg.jpg")
 if bgAsset then
     local Img = Instance.new("ImageLabel")
@@ -158,21 +182,21 @@ if bgAsset then
     Img.Parent = BgLayer
     round(Img, 12)
 
-    local Veil = Instance.new("Frame")
-    Veil.Size = UDim2.fromScale(1, 1)
-    Veil.BackgroundColor3 = Theme.bg
-    Veil.BackgroundTransparency = 0.32
-    Veil.BorderSizePixel = 0
-    Veil.ZIndex = 2
-    Veil.Parent = BgLayer
-    round(Veil, 12)
+    bgVeil = Instance.new("Frame")
+    bgVeil.Size = UDim2.fromScale(1, 1)
+    bgVeil.BackgroundColor3 = Theme.bg
+    bgVeil.BackgroundTransparency = Config.bgOpacity
+    bgVeil.BorderSizePixel = 0
+    bgVeil.ZIndex = 2
+    bgVeil.Parent = BgLayer
+    round(bgVeil, 12)
 else
-    local Veil = Instance.new("Frame")
-    Veil.Size = UDim2.fromScale(1, 1)
-    Veil.BackgroundColor3 = Theme.bg
-    Veil.BackgroundTransparency = 0.1
-    Veil.ZIndex = 2
-    Veil.Parent = BgLayer
+    bgVeil = Instance.new("Frame")
+    bgVeil.Size = UDim2.fromScale(1, 1)
+    bgVeil.BackgroundColor3 = Theme.bg
+    bgVeil.BackgroundTransparency = 0.1
+    bgVeil.ZIndex = 2
+    bgVeil.Parent = BgLayer
 end
 
 local Top = Instance.new("Frame")
@@ -189,6 +213,7 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.TextColor3 = Theme.text
+Title.TextStrokeTransparency = 0.4
 Title.ZIndex = 4
 Title.Text = "Nexus-HUB | Duelos -- By Navi"
 Title.Parent = Top
@@ -259,7 +284,7 @@ local Content = Instance.new("Frame")
 Content.Size = UDim2.new(1, -152, 1, -56)
 Content.Position = UDim2.fromOffset(144, 46)
 Content.BackgroundColor3 = Theme.panel
-Content.BackgroundTransparency = 0.55
+Content.BackgroundTransparency = 0.62
 Content.ZIndex = 3
 Content.Parent = Main
 round(Content, 10)
@@ -325,6 +350,7 @@ local function section(page, text)
     l.Font = Enum.Font.GothamBold
     l.TextSize = 11
     l.TextColor3 = Theme.accent
+    l.TextStrokeTransparency = 0.5
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Text = string.upper(text)
     l.ZIndex = 5
@@ -335,7 +361,7 @@ local function toggle(page, text, default, callback)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, 0, 0, 34)
     row.BackgroundColor3 = Theme.bg
-    row.BackgroundTransparency = 0.5
+    row.BackgroundTransparency = 0.45
     row.ZIndex = 4
     row.Parent = page
     round(row, 8)
@@ -399,7 +425,7 @@ local function slider(page, text, min, max, default, callback)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, 0, 0, 46)
     row.BackgroundColor3 = Theme.bg
-    row.BackgroundTransparency = 0.5
+    row.BackgroundTransparency = 0.45
     row.ZIndex = 4
     row.Parent = page
     round(row, 8)
@@ -435,7 +461,7 @@ local function slider(page, text, min, max, default, callback)
     local function set(value)
         value = math.clamp(value, min, max)
         fill.Size = UDim2.fromScale((value - min) / (max - min), 1)
-        label.Text = text .. ": " .. string.format("%.2f", value)
+        label.Text = text .. ": " .. string.format("%.0f", value)
         callback(value)
     end
 
@@ -466,7 +492,7 @@ local function dropdown(page, text, options, default, callback)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, 0, 0, 34)
     row.BackgroundColor3 = Theme.bg
-    row.BackgroundTransparency = 0.5
+    row.BackgroundTransparency = 0.45
     row.ZIndex = 4
     row.Parent = page
     round(row, 8)
@@ -522,6 +548,62 @@ local function button(page, text, callback)
     return btn
 end
 
+local function swatches(page, text, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 34)
+    row.BackgroundColor3 = Theme.bg
+    row.BackgroundTransparency = 0.45
+    row.ZIndex = 4
+    row.Parent = page
+    round(row, 8)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.Position = UDim2.fromOffset(10, 0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 11
+    label.TextColor3 = Theme.text
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = text
+    label.ZIndex = 5
+    label.Parent = row
+
+    local colors = {
+        Color3.fromRGB(178, 120, 255),
+        Color3.fromRGB(255, 110, 180),
+        Color3.fromRGB(110, 220, 255),
+        Color3.fromRGB(120, 255, 160),
+        Color3.fromRGB(255, 210, 100),
+        Color3.fromRGB(255, 90, 90),
+        Color3.fromRGB(255, 255, 255),
+    }
+
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(0.6, -14, 0, 22)
+    holder.Position = UDim2.new(0.4, 2, 0.5, -11)
+    holder.BackgroundTransparency = 1
+    holder.ZIndex = 5
+    holder.Parent = row
+
+    local list = Instance.new("UIListLayout")
+    list.FillDirection = Enum.FillDirection.Horizontal
+    list.Padding = UDim.new(0, 4)
+    list.Parent = holder
+
+    for _, col in ipairs(colors) do
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.fromOffset(20, 20)
+        b.BackgroundColor3 = col
+        b.Text = ""
+        b.ZIndex = 6
+        b.Parent = holder
+        round(b, 10)
+        b.MouseButton1Click:Connect(function() callback(col) end)
+    end
+    return row
+end
+
 local function notify(msg)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -530,7 +612,7 @@ local function notify(msg)
     end)
 end
 
--- ==================== CORTE: AQUÍ TERMINA LA PARTE 1 ====================
+-- ==================== CORTE: FIN DE LA PARTE 1 ====================
 
 local pHome  = makePage("Inicio", "⌂")
 local pAim   = makePage("AimBot", "◎")
@@ -544,7 +626,7 @@ section(pHome, "Estado")
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, 0, 0, 46)
 status.BackgroundColor3 = Theme.bg
-status.BackgroundTransparency = 0.5
+status.BackgroundTransparency = 0.45
 status.Font = Enum.Font.GothamMedium
 status.TextSize = 11
 status.TextWrapped = true
@@ -560,16 +642,19 @@ end)
 button(pHome, "Minimizar panel", function() Main.Visible = false Float.Visible = true end)
 
 section(pAim, "Auto Shoot")
-toggle(pAim, "Auto Shoot (disparo automático)", false, function(v) Config.autoShoot = v end)
-toggle(pAim, "Equipar arma sola", true, function(v) Config.autoEquip = v end)
+toggle(pAim, "Auto Shoot (dispara al del ESP)", false, function(v) Config.autoShoot = v end)
+toggle(pAim, "Sacar arma sola", true, function(v) Config.autoEquip = v end)
 dropdown(pAim, "Parte del cuerpo", {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}, "Head", function(v)
     Config.aimPart = v
 end)
 slider(pAim, "Cadencia", 0.05, 0.6, 0.15, function(v) Config.shootDelay = v end)
+slider(pAim, "Rango de disparo", 20, 300, 120, function(v) Config.aimRange = v end)
 
 section(pAim, "AimBot de cámara")
 toggle(pAim, "AimBot", false, function(v) Config.aimBot = v end)
-slider(pAim, "Suavizado", 0.02, 1, 0.25, function(v) Config.aimSmooth = v end)
+toggle(pAim, "Solo si el enemigo está cerca", true, function(v) Config.aimNearOnly = v end)
+toggle(pAim, "Soltar cámara al arrastrar", true, function(v) Config.pauseOnDrag = v end)
+slider(pAim, "Suavizado", 0.02, 1, 0.18, function(v) Config.aimSmooth = v end)
 slider(pAim, "FOV", 20, 400, 120, function(v) Config.aimFov = v end)
 slider(pAim, "Predicción", 0, 0.5, 0, function(v) Config.prediction = v end)
 
@@ -579,14 +664,17 @@ toggle(pVis, "Nombres", false, function(v) Config.espName = v end)
 toggle(pVis, "Distancia", false, function(v) Config.espDistance = v end)
 toggle(pVis, "Trazadores", false, function(v) Config.espTracer = v end)
 toggle(pVis, "Ignorar mi equipo", true, function(v) Config.espTeamCheck = v end)
+slider(pVis, "Rango visible (m)", 30, 800, 250, function(v) Config.espRange = v end)
 
-section(pVis, "Silent Aim + FOV")
-toggle(pVis, "Silent Aim", false, function(v) Config.silentAim = v end)
+section(pVis, "FOV")
 toggle(pVis, "Mostrar círculo FOV", true, function(v) Config.showFov = v end)
+swatches(pVis, "Color del FOV", function(col) Config.fovColor = col end)
 slider(pVis, "FOV Silent", 20, 500, 150, function(v) Config.silentFov = v end)
+toggle(pVis, "Silent Aim", false, function(v) Config.silentAim = v end)
 
 section(pKill, "Kill All")
-button(pKill, "Kill All (seguro, uno por uno)", function()
+slider(pKill, "Rango de teletransporte", 30, 500, 200, function(v) Config.killRange = v end)
+button(pKill, "Kill All (solo la partida)", function()
     if killAllOnce then killAllOnce() end
 end)
 button(pKill, "Volver al spawn", function()
@@ -601,7 +689,11 @@ end)
 section(pInv, "Invisible")
 toggle(pInv, "Modo invisible", false, function(v) Config.invisible = v end)
 
-section(pCheat, "Anti-kick")
+section(pCheat, "Ajustes")
+slider(pCheat, "Opacidad del fondo", 0.1, 0.85, 0.5, function(v)
+    Config.bgOpacity = v
+    if bgVeil then bgVeil.BackgroundTransparency = v end
+end)
 toggle(pCheat, "Modo seguro (recomendado)", true, function(v) Config.safeMode = v end)
 button(pCheat, "Apagar todo", function()
     Config.autoShoot = false
@@ -641,7 +733,6 @@ for n, p in pairs(Pages) do p.Visible = (n == "Inicio") end
 tabButtons["Inicio"].BackgroundTransparency = 0.25
 tabButtons["Inicio"].TextColor3 = Theme.accent
 
--- Botón flotante para reabrir
 local Float = Instance.new("TextButton")
 Float.Size = UDim2.fromOffset(46, 46)
 Float.Position = UDim2.fromOffset(18, 120)
@@ -698,9 +789,9 @@ FovFrame.ZIndex = 5
 FovFrame.Parent = Screen
 round(FovFrame, 999)
 local fovStroke = Instance.new("UIStroke")
-fovStroke.Color = Theme.accent
-fovStroke.Thickness = 1.4
-fovStroke.Transparency = 0.35
+fovStroke.Color = Config.fovColor
+fovStroke.Thickness = 1.6
+fovStroke.Transparency = 0.25
 fovStroke.Parent = FovFrame
 
 -- ESP
@@ -728,7 +819,7 @@ local function buildEsp(plr)
 
     local hl = Instance.new("Highlight")
     hl.Adornee = char
-    hl.FillColor = Theme.accent
+    hl.FillColor = Config.fovColor
     hl.OutlineColor = Theme.accent2
     hl.FillTransparency = 0.75
     hl.OutlineTransparency = 0
@@ -736,28 +827,28 @@ local function buildEsp(plr)
     hl.Parent = espFolder
 
     local gui = Instance.new("BillboardGui")
-    gui.Size = UDim2.fromOffset(140, 46)
-    gui.StudsOffset = Vector3.new(0, 3.4, 0)
+    gui.Size = UDim2.fromOffset(120, 40)
+    gui.StudsOffset = Vector3.new(0, 3.2, 0)
     gui.AlwaysOnTop = true
     gui.Adornee = head
     gui.Parent = espFolder
 
     local nameLbl = Instance.new("TextLabel")
-    nameLbl.Size = UDim2.new(1, 0, 0, 20)
+    nameLbl.Size = UDim2.new(1, 0, 0, 18)
     nameLbl.BackgroundTransparency = 1
     nameLbl.Font = Enum.Font.GothamBold
-    nameLbl.TextSize = 13
+    nameLbl.TextSize = 12
     nameLbl.TextColor3 = Theme.accent2
     nameLbl.TextStrokeTransparency = 0.2
     nameLbl.Text = plr.Name
     nameLbl.Parent = gui
 
     local distLbl = Instance.new("TextLabel")
-    distLbl.Size = UDim2.new(1, 0, 0, 16)
-    distLbl.Position = UDim2.fromOffset(0, 20)
+    distLbl.Size = UDim2.new(1, 0, 0, 14)
+    distLbl.Position = UDim2.fromOffset(0, 18)
     distLbl.BackgroundTransparency = 1
     distLbl.Font = Enum.Font.GothamMedium
-    distLbl.TextSize = 11
+    distLbl.TextSize = 10
     distLbl.TextColor3 = Theme.text
     distLbl.TextStrokeTransparency = 0.2
     distLbl.Text = ""
@@ -768,7 +859,7 @@ local function buildEsp(plr)
         pcall(function()
             line = Drawing.new("Line")
             line.Thickness = 1
-            line.Color = Theme.accent
+            line.Color = Config.fovColor
         end)
     end
 
@@ -777,15 +868,13 @@ end
 
 local function refreshEsp()
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            if isAlive(plr) and not (Config.espTeamCheck and plr.Team and plr.Team == LocalPlayer.Team) then
-                if not espData[plr] or not espData[plr].hl.Parent then
-                    clearEsp(plr)
-                    buildEsp(plr)
-                end
-            else
+        if inRange(plr, Config.espRange) then
+            if not espData[plr] or not espData[plr].hl.Parent then
                 clearEsp(plr)
+                buildEsp(plr)
             end
+        else
+            clearEsp(plr)
         end
     end
     for plr in pairs(espData) do
@@ -795,11 +884,27 @@ end
 
 Players.PlayerRemoving:Connect(clearEsp)
 
-local function getClosest(fovRadius)
+-- El jugador suelta la cámara mientras arrastra la pantalla
+local touching = false
+UserInputService.InputBegan:Connect(function(i, processed)
+    if processed then return end
+    if i.UserInputType == Enum.UserInputType.Touch
+    or i.UserInputType == Enum.UserInputType.MouseButton1 then
+        touching = true
+    end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.Touch
+    or i.UserInputType == Enum.UserInputType.MouseButton1 then
+        touching = false
+    end
+end)
+
+local function getClosest(fovRadius, range)
     local best, bestDist = nil, fovRadius
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr) then
+        if plr ~= LocalPlayer and isAlive(plr) and distanceTo(plr) <= (range or 400) then
             local part = getPart(plr)
             if part then
                 local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
@@ -820,7 +925,7 @@ pcall(function()
     mt.__index = newcclosure(function(self, key)
         if checkcaller() then return oldIndex(self, key) end
         if Config.silentAim and self == Mouse then
-            local target = getClosest(Config.silentFov)
+            local target = getClosest(Config.silentFov, Config.silentRange)
             local part = target and getPart(target)
             if part then
                 if key == "Hit" then return part.CFrame end
@@ -845,10 +950,12 @@ function killAllOnce()
     if not hrp then teleportLock = false return end
 
     local origin = hrp.CFrame
+    local count = 0
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr) then
+        if plr ~= LocalPlayer and isAlive(plr) and distanceTo(plr) <= Config.killRange then
             local part = getPart(plr)
             if part then
+                count = count + 1
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
                 waitSafe(0.2)
@@ -861,24 +968,30 @@ function killAllOnce()
     hrp.CFrame = origin
     hrp.AssemblyLinearVelocity = Vector3.zero
     teleportLock = false
-    notify("Kill All terminado")
+    notify("Kill All: " .. count .. " enemigos")
 end
 
 local lastShot, espAcc = 0, 0
 local farmIndex = 1
 
 RunService.RenderStepped:Connect(function(dt)
+    fovStroke.Color = Config.fovColor
     local radius = Config.silentAim and Config.silentFov or Config.aimFov
     FovFrame.Visible = Config.showFov
     FovFrame.Size = UDim2.fromOffset(radius * 2, radius * 2)
 
-    if Config.aimBot then
-        local target = getClosest(Config.aimFov)
+    -- AimBot: solo engancha si hay objetivo y no estás arrastrando
+    if Config.aimBot and not (Config.pauseOnDrag and touching) then
+        local target = getClosest(Config.aimFov, Config.aimRange)
         local part = target and getPart(target)
         if part then
-            local dest = part.Position + part.AssemblyLinearVelocity * Config.prediction
-            local goal = CFrame.lookAt(Camera.CFrame.Position, dest)
-            Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(Config.aimSmooth * 0.55, 0.02, 1))
+            local near = true
+            if Config.aimNearOnly then near = distanceTo(target) <= Config.aimRange end
+            if near then
+                local dest = part.Position + part.AssemblyLinearVelocity * Config.prediction
+                local goal = CFrame.lookAt(Camera.CFrame.Position, dest)
+                Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(Config.aimSmooth * 0.35, 0.01, 0.6))
+            end
         end
     end
 
@@ -893,11 +1006,13 @@ RunService.RenderStepped:Connect(function(dt)
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if hrp and d.gui then
                     d.hl.Enabled = Config.espBox
+                    d.hl.FillColor = Config.fovColor
                     d.gui.Enabled = Config.espName or Config.espDistance
                     d.name.Visible = Config.espName
                     d.dist.Visible = Config.espDistance
-                    d.dist.Text = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude) .. "m"
+                    d.dist.Text = math.floor(distanceTo(plr)) .. "m"
                     if d.line then
+                        d.line.Color = Config.fovColor
                         local pos, on = Camera:WorldToViewportPoint(hrp.Position)
                         d.line.Visible = Config.espTracer and on
                         if Config.espTracer and on then
@@ -913,7 +1028,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 
     if Config.autoShoot then
-        local target = getClosest(Config.aimFov)
+        local target = getClosest(Config.aimFov, Config.aimRange)
         if target and isAlive(target) then
             if Config.autoEquip then
                 local char = LocalPlayer.Character
@@ -963,7 +1078,7 @@ task.spawn(function()
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local list = {}
             for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer and isAlive(plr) then table.insert(list, plr) end
+                if inRange(plr, Config.killRange) then table.insert(list, plr) end
             end
             if hrp and #list > 0 then
                 farmIndex = farmIndex % #list + 1
@@ -997,5 +1112,5 @@ task.spawn(function()
     end
 end)
 
-notify("Nexus-HUB cargado correctamente")
-print("[Nexus-HUB] cargado")
+notify("Nexus-HUB v4 cargado")
+print("[Nexus-HUB] v4 cargado")
