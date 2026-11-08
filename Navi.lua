@@ -1,3 +1,7 @@
+--[[
+    NEXUS-HUB | DUELOS -- By Navi
+    v3: completo + minimizar + botón flotante
+--]]
 
 local Players           = game:GetService("Players")
 local RunService        = game:GetService("RunService")
@@ -47,9 +51,6 @@ local Config = {
     farmStreak      = false,
 }
 
---=====================================================================
--- UTILIDADES
---=====================================================================
 local function round(obj, r)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, r or 8)
@@ -110,20 +111,14 @@ local function isAlive(plr)
     return hum ~= nil and hum.Health > 0
 end
 
--- Descarga el fondo (executor) -> asset local
 local function loadAsset(url, name)
     local ok, res = pcall(function()
-        if not isfile(name) then
-            writefile(name, game:HttpGet(url))
-        end
+        if not isfile(name) then writefile(name, game:HttpGet(url)) end
         return getcustomasset(name)
     end)
     if ok then return res end
 end
 
---=====================================================================
--- GUI
---=====================================================================
 local parentGui = (gethui and gethui()) or game:GetService("CoreGui")
 local old = parentGui:FindFirstChild("NexusHubDuels")
 if old then old:Destroy() end
@@ -146,7 +141,6 @@ Main.Parent = Screen
 round(Main, 12)
 stroke(Main, Theme.accent, 1.4)
 
--- Fondo con imagen
 local BgLayer = Instance.new("Frame")
 BgLayer.Size = UDim2.fromScale(1, 1)
 BgLayer.BackgroundTransparency = 1
@@ -181,7 +175,6 @@ else
     Veil.Parent = BgLayer
 end
 
--- Barra superior
 local Top = Instance.new("Frame")
 Top.Size = UDim2.new(1, 0, 0, 38)
 Top.BackgroundTransparency = 1
@@ -189,7 +182,7 @@ Top.ZIndex = 3
 Top.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -110, 1, 0)
+Title.Size = UDim2.new(1, -140, 1, 0)
 Title.Position = UDim2.fromOffset(14, 0)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
@@ -202,7 +195,7 @@ Title.Parent = Top
 
 local Ping = Instance.new("TextLabel")
 Ping.Size = UDim2.fromOffset(52, 20)
-Ping.Position = UDim2.new(1, -102, 0, 9)
+Ping.Position = UDim2.new(1, -132, 0, 9)
 Ping.BackgroundColor3 = Theme.green
 Ping.BackgroundTransparency = 0.2
 Ping.Font = Enum.Font.GothamBold
@@ -215,7 +208,7 @@ round(Ping, 6)
 
 local Badge = Instance.new("TextLabel")
 Badge.Size = UDim2.fromOffset(38, 20)
-Badge.Position = UDim2.new(1, -46, 0, 9)
+Badge.Position = UDim2.new(1, -76, 0, 9)
 Badge.BackgroundColor3 = Theme.accent
 Badge.BackgroundTransparency = 0.15
 Badge.Font = Enum.Font.GothamBold
@@ -225,6 +218,17 @@ Badge.Text = "HUB"
 Badge.ZIndex = 4
 Badge.Parent = Top
 round(Badge, 6)
+
+local Mini = Instance.new("TextButton")
+Mini.Size = UDim2.fromOffset(22, 22)
+Mini.Position = UDim2.new(1, -52, 0, 8)
+Mini.BackgroundTransparency = 1
+Mini.Font = Enum.Font.GothamBold
+Mini.TextSize = 18
+Mini.TextColor3 = Theme.accent
+Mini.Text = "–"
+Mini.ZIndex = 4
+Mini.Parent = Top
 
 local Close = Instance.new("TextButton")
 Close.Size = UDim2.fromOffset(22, 22)
@@ -239,7 +243,6 @@ Close.Parent = Top
 
 drag(Main, Top)
 
--- Sidebar
 local Side = Instance.new("Frame")
 Side.Size = UDim2.new(0, 132, 1, -46)
 Side.Position = UDim2.fromOffset(8, 42)
@@ -315,9 +318,6 @@ local function makePage(name, glyph)
     return page
 end
 
---=====================================================================
--- COMPONENTES
---=====================================================================
 local function section(page, text)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 20)
@@ -530,9 +530,8 @@ local function notify(msg)
     end)
 end
 
---=====================================================================
--- PÁGINAS
---=====================================================================
+-- ==================== CORTE: AQUÍ TERMINA LA PARTE 1 ====================
+
 local pHome  = makePage("Inicio", "⌂")
 local pAim   = makePage("AimBot", "◎")
 local pVis   = makePage("Visual", "◉")
@@ -558,9 +557,7 @@ round(status, 8)
 button(pHome, "Reiniciar personaje", function()
     pcall(function() LocalPlayer.Character:BreakJoints() end)
 end)
-button(pHome, "Cerrar y recargar", function()
-    Screen:Destroy()
-end)
+button(pHome, "Minimizar panel", function() Main.Visible = false Float.Visible = true end)
 
 section(pAim, "Auto Shoot")
 toggle(pAim, "Auto Shoot (disparo automático)", false, function(v) Config.autoShoot = v end)
@@ -620,7 +617,385 @@ button(pCheat, "Apagar todo", function()
     notify("Todo apagado")
 end)
 button(pCheat, "Copiar mi posición", function()
-    local hrp = getChar() and getChar():FindFirstChild("HumanoidRootPart")
+    local char = getChar()
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
         setclipboard(tostring(hrp.CFrame))
-        notify("Posición copia
+        notify("Posición copiada")
+    end
+end)
+
+section(pFarm, "Automatización")
+toggle(pFarm, "Farmear evento", false, function(v) Config.farmEvent = v end)
+toggle(pFarm, "Farmear racha", false, function(v) Config.farmStreak = v end)
+button(pFarm, "Buscar partida (PLAY)", function()
+    for _, g in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+        if g:IsA("TextButton") and string.upper(g.Text):find("PLAY") then
+            pcall(function() g:Activate() end)
+            break
+        end
+    end
+end)
+
+for n, p in pairs(Pages) do p.Visible = (n == "Inicio") end
+tabButtons["Inicio"].BackgroundTransparency = 0.25
+tabButtons["Inicio"].TextColor3 = Theme.accent
+
+-- Botón flotante para reabrir
+local Float = Instance.new("TextButton")
+Float.Size = UDim2.fromOffset(46, 46)
+Float.Position = UDim2.fromOffset(18, 120)
+Float.BackgroundColor3 = Theme.bg
+Float.BackgroundTransparency = 0.1
+Float.Font = Enum.Font.GothamBold
+Float.TextSize = 18
+Float.TextColor3 = Theme.accent
+Float.Text = "N"
+Float.Visible = false
+Float.ZIndex = 60
+Float.Parent = Screen
+round(Float, 999)
+stroke(Float, Theme.accent, 1.6)
+
+local fDrag, fStart, fMoved = false, nil, false
+Float.MouseButton1Down:Connect(function()
+    fDrag = true
+    fMoved = false
+    fStart = UserInputService:GetMouseLocation()
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1
+    or i.UserInputType == Enum.UserInputType.Touch then
+        if fDrag and not fMoved then
+            Main.Visible = true
+            Float.Visible = false
+        end
+        fDrag = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(i)
+    if fDrag and (i.UserInputType == Enum.UserInputType.MouseMovement
+    or i.UserInputType == Enum.UserInputType.Touch) then
+        local pos = UserInputService:GetMouseLocation()
+        if fStart and (pos - fStart).Magnitude > 6 then fMoved = true end
+        Float.Position = UDim2.fromOffset(pos.X - 23, pos.Y - 23)
+    end
+end)
+
+Mini.MouseButton1Click:Connect(function()
+    Main.Visible = false
+    Float.Visible = true
+end)
+Close.MouseButton1Click:Connect(function() Screen:Destroy() end)
+
+-- Círculo FOV
+local FovFrame = Instance.new("Frame")
+FovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FovFrame.Position = UDim2.fromScale(0.5, 0.5)
+FovFrame.BackgroundTransparency = 1
+FovFrame.BorderSizePixel = 0
+FovFrame.ZIndex = 5
+FovFrame.Parent = Screen
+round(FovFrame, 999)
+local fovStroke = Instance.new("UIStroke")
+fovStroke.Color = Theme.accent
+fovStroke.Thickness = 1.4
+fovStroke.Transparency = 0.35
+fovStroke.Parent = FovFrame
+
+-- ESP
+local espFolder = Instance.new("Folder")
+espFolder.Name = "NexusESP"
+espFolder.Parent = Camera
+
+local espData = {}
+
+local function clearEsp(plr)
+    local d = espData[plr]
+    if d then
+        pcall(function() d.hl:Destroy() end)
+        pcall(function() d.gui:Destroy() end)
+        pcall(function() if d.line then d.line:Remove() end end)
+        espData[plr] = nil
+    end
+end
+
+local function buildEsp(plr)
+    local char = plr.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+    if not head then return end
+
+    local hl = Instance.new("Highlight")
+    hl.Adornee = char
+    hl.FillColor = Theme.accent
+    hl.OutlineColor = Theme.accent2
+    hl.FillTransparency = 0.75
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = espFolder
+
+    local gui = Instance.new("BillboardGui")
+    gui.Size = UDim2.fromOffset(140, 46)
+    gui.StudsOffset = Vector3.new(0, 3.4, 0)
+    gui.AlwaysOnTop = true
+    gui.Adornee = head
+    gui.Parent = espFolder
+
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(1, 0, 0, 20)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextSize = 13
+    nameLbl.TextColor3 = Theme.accent2
+    nameLbl.TextStrokeTransparency = 0.2
+    nameLbl.Text = plr.Name
+    nameLbl.Parent = gui
+
+    local distLbl = Instance.new("TextLabel")
+    distLbl.Size = UDim2.new(1, 0, 0, 16)
+    distLbl.Position = UDim2.fromOffset(0, 20)
+    distLbl.BackgroundTransparency = 1
+    distLbl.Font = Enum.Font.GothamMedium
+    distLbl.TextSize = 11
+    distLbl.TextColor3 = Theme.text
+    distLbl.TextStrokeTransparency = 0.2
+    distLbl.Text = ""
+    distLbl.Parent = gui
+
+    local line
+    if Drawing then
+        pcall(function()
+            line = Drawing.new("Line")
+            line.Thickness = 1
+            line.Color = Theme.accent
+        end)
+    end
+
+    espData[plr] = { hl = hl, gui = gui, name = nameLbl, dist = distLbl, line = line }
+end
+
+local function refreshEsp()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            if isAlive(plr) and not (Config.espTeamCheck and plr.Team and plr.Team == LocalPlayer.Team) then
+                if not espData[plr] or not espData[plr].hl.Parent then
+                    clearEsp(plr)
+                    buildEsp(plr)
+                end
+            else
+                clearEsp(plr)
+            end
+        end
+    end
+    for plr in pairs(espData) do
+        if not plr.Parent then clearEsp(plr) end
+    end
+end
+
+Players.PlayerRemoving:Connect(clearEsp)
+
+local function getClosest(fovRadius)
+    local best, bestDist = nil, fovRadius
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and isAlive(plr) then
+            local part = getPart(plr)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if d < bestDist then best, bestDist = plr, d end
+                end
+            end
+        end
+    end
+    return best
+end
+
+pcall(function()
+    local mt = getrawmetatable(game)
+    local oldIndex = mt.__index
+    setreadonly(mt, false)
+    mt.__index = newcclosure(function(self, key)
+        if checkcaller() then return oldIndex(self, key) end
+        if Config.silentAim and self == Mouse then
+            local target = getClosest(Config.silentFov)
+            local part = target and getPart(target)
+            if part then
+                if key == "Hit" then return part.CFrame end
+                if key == "Target" then return part end
+                if key == "HitPosition" then return part.Position end
+                if key == "UnitRay" then
+                    return Ray.new(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 2000)
+                end
+            end
+        end
+        return oldIndex(self, key)
+    end)
+    setreadonly(mt, true)
+end)
+
+local teleportLock = false
+function killAllOnce()
+    if teleportLock then return end
+    teleportLock = true
+    local char = getChar()
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then teleportLock = false return end
+
+    local origin = hrp.CFrame
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and isAlive(plr) then
+            local part = getPart(plr)
+            if part then
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
+                waitSafe(0.2)
+                pcall(function() mouse1click() end)
+                waitSafe(0.15)
+            end
+        end
+    end
+    waitSafe(0.2)
+    hrp.CFrame = origin
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    teleportLock = false
+    notify("Kill All terminado")
+end
+
+local lastShot, espAcc = 0, 0
+local farmIndex = 1
+
+RunService.RenderStepped:Connect(function(dt)
+    local radius = Config.silentAim and Config.silentFov or Config.aimFov
+    FovFrame.Visible = Config.showFov
+    FovFrame.Size = UDim2.fromOffset(radius * 2, radius * 2)
+
+    if Config.aimBot then
+        local target = getClosest(Config.aimFov)
+        local part = target and getPart(target)
+        if part then
+            local dest = part.Position + part.AssemblyLinearVelocity * Config.prediction
+            local goal = CFrame.lookAt(Camera.CFrame.Position, dest)
+            Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(Config.aimSmooth * 0.55, 0.02, 1))
+        end
+    end
+
+    espAcc = espAcc + dt
+    if espAcc >= 0.08 then
+        espAcc = 0
+        local anyEsp = Config.espBox or Config.espName or Config.espDistance or Config.espTracer
+        if anyEsp then
+            refreshEsp()
+            for plr, d in pairs(espData) do
+                local char = plr.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp and d.gui then
+                    d.hl.Enabled = Config.espBox
+                    d.gui.Enabled = Config.espName or Config.espDistance
+                    d.name.Visible = Config.espName
+                    d.dist.Visible = Config.espDistance
+                    d.dist.Text = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude) .. "m"
+                    if d.line then
+                        local pos, on = Camera:WorldToViewportPoint(hrp.Position)
+                        d.line.Visible = Config.espTracer and on
+                        if Config.espTracer and on then
+                            d.line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                            d.line.To = Vector2.new(pos.X, pos.Y)
+                        end
+                    end
+                end
+            end
+        else
+            for plr in pairs(espData) do clearEsp(plr) end
+        end
+    end
+
+    if Config.autoShoot then
+        local target = getClosest(Config.aimFov)
+        if target and isAlive(target) then
+            if Config.autoEquip then
+                local char = LocalPlayer.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum and not char:FindFirstChildOfClass("Tool") then
+                    for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+                        if t:IsA("Tool") then pcall(function() hum:EquipTool(t) end) break end
+                    end
+                end
+            end
+            local delay = Config.safeMode and Config.shootDelay * 1.6 or Config.shootDelay
+            if os.clock() - lastShot >= delay then
+                lastShot = os.clock()
+                pcall(function() mouse1click() end)
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    local originals = {}
+    while Screen.Parent do
+        if Config.invisible then
+            local char = LocalPlayer.Character
+            if char then
+                for _, p in ipairs(char:GetDescendants()) do
+                    if (p:IsA("BasePart") and p.Name ~= "HumanoidRootPart")
+                    or p:IsA("Decal") or p:IsA("Texture") then
+                        if originals[p] == nil then originals[p] = p.Transparency end
+                        p.Transparency = 1
+                    end
+                end
+            end
+        else
+            for p, t in pairs(originals) do pcall(function() p.Transparency = t end) end
+            originals = {}
+        end
+        task.wait(0.3)
+    end
+end)
+
+task.spawn(function()
+    while Screen.Parent do
+        task.wait(0.2)
+        if (Config.farmEvent or Config.farmStreak) and not teleportLock then
+            local char = getChar()
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local list = {}
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and isAlive(plr) then table.insert(list, plr) end
+            end
+            if hrp and #list > 0 then
+                farmIndex = farmIndex % #list + 1
+                local part = getPart(list[farmIndex])
+                if part then
+                    hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
+                    task.wait(Config.safeMode and 0.4 or 0.25)
+                    pcall(function() mouse1click() end)
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while Screen.Parent do
+        local ok, ping = pcall(function()
+            return math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
+        if ok and ping then
+            Ping.Text = ping .. " ms"
+            Ping.BackgroundColor3 = ping < 150 and Theme.green
+                or (ping < 350 and Color3.fromRGB(240, 190, 90) or Theme.red)
+        end
+        status.Text = string.format("AimBot: %s | Silent: %s | ESP: %s | AutoShoot: %s",
+            Config.aimBot and "ON" or "OFF",
+            Config.silentAim and "ON" or "OFF",
+            (Config.espBox or Config.espName or Config.espDistance) and "ON" or "OFF",
+            Config.autoShoot and "ON" or "OFF")
+        task.wait(1)
+    end
+end)
+
+notify("Nexus-HUB cargado correctamente")
+print("[Nexus-HUB] cargado")
