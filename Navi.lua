@@ -613,7 +613,7 @@ local pHome  = makePage("Inicio", "⌂")
 local pAim   = makePage("AimBot", "◎")
 local pVis   = makePage("Visual", "◉")
 local pKill  = makePage("Kill All", "☠")
-local pInv   = makePage("Invisible", "👻")
+local pInv   = makePage("Invisible", "🐲😿")
 local pCheat = makePage("Tramposo", "⚡")
 local pFarm  = makePage("Zona de farmeo", "⚙")
 
