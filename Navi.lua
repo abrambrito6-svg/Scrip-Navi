@@ -1,6 +1,6 @@
 --[[
     NEXUS-HUB | DUELOS -- By Navi
-    v5: distancia por cámara, disparo por Tool:Activate, ESP con contador
+    v6: ESP 3D tipo caja roja + Auto Shot conectado al ESP
 --]]
 
 local Players           = game:GetService("Players")
@@ -12,7 +12,6 @@ local StarterGui        = game:GetService("StarterGui")
 local Stats             = game:GetService("Stats")
 local LocalPlayer       = Players.LocalPlayer
 local Camera            = Workspace.CurrentCamera
-local Mouse             = LocalPlayer:GetMouse()
 
 local BG_URL = "https://files.catbox.moe/cjy2y9.jpg"
 local GUNS = {"gun", "revolver", "pistol", "blaster", "laser", "chroma", "rifle", "sniper"}
@@ -30,32 +29,21 @@ local Theme = {
 }
 
 local Config = {
-    aimBot          = false,
-    aimSmooth       = 0.18,
-    aimFov          = 120,
-    aimPart         = "Head",
-    aimNearOnly     = true,
-    aimRange        = 120,
-    pauseOnDrag     = true,
-    prediction      = 0.0,
-    silentAim       = false,
-    silentFov       = 150,
-    silentRange     = 400,
-    showFov         = true,
-    fovColor        = Color3.fromRGB(178, 120, 255),
-    autoShoot       = false,
-    shootDelay      = 0.2,
-    autoEquip       = true,
+    -- ESP
     espBox          = false,
     espName         = false,
     espDistance     = false,
-    espTracer       = false,
-    espRange        = 300,
-    espNoLimit      = false,
-    espTeamCheck    = true,
+    espColor        = Color3.fromRGB(255, 45, 45),
+    espRange        = 220,
+    -- Auto shot
+    autoShoot       = false,
+    autoEquip       = true,
+    shootDelay      = 0.18,
+    -- Varios
     invisible       = false,
     safeMode        = true,
     bgOpacity       = 0.5,
+    killRange       = 200,
     farmEvent       = false,
     farmStreak      = false,
 }
@@ -102,11 +90,9 @@ local function waitSafe(base)
     task.wait(Config.safeMode and base * 2 or base)
 end
 
-local function getPart(plr)
+local function getHRP(plr)
     local char = plr and plr.Character
-    if not char then return nil end
-    local p = char:FindFirstChild(Config.aimPart) or char:FindFirstChild("HumanoidRootPart")
-    if p and p:IsA("BasePart") then return p end
+    return char and char:FindFirstChild("HumanoidRootPart")
 end
 
 local function isAlive(plr)
@@ -115,17 +101,15 @@ local function isAlive(plr)
     return hum ~= nil and hum.Health > 0
 end
 
--- Distancia desde la cámara: no falla si falta el HRP
 local function distTo(plr)
-    local part = getPart(plr)
+    local part = getHRP(plr)
     if not part then return 9999 end
     return (Camera.CFrame.Position - part.Position).Magnitude
 end
 
+-- Solo jugadores dentro de la partida (el lobby queda fuera por distancia)
 local function inRange(plr, range)
     if plr == LocalPlayer or not isAlive(plr) then return false end
-    if Config.espTeamCheck and plr.Team and plr.Team == LocalPlayer.Team then return false end
-    if Config.espNoLimit or range <= 0 then return true end
     return distTo(plr) <= range
 end
 
@@ -483,50 +467,6 @@ local function slider(page, text, min, max, default, callback)
     return row
 end
 
-local function dropdown(page, text, options, default, callback)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 34)
-    row.BackgroundColor3 = Theme.bg
-    row.BackgroundTransparency = 0.45
-    row.ZIndex = 4
-    row.Parent = page
-    round(row, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.5, -10, 1, 0)
-    label.Position = UDim2.fromOffset(10, 0)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamMedium
-    label.TextSize = 11
-    label.TextColor3 = Theme.text
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = text
-    label.ZIndex = 5
-    label.Parent = row
-
-    local current = 1
-    for i, o in ipairs(options) do if o == default then current = i end end
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.5, -14, 0, 22)
-    btn.Position = UDim2.new(0.5, 4, 0.5, -11)
-    btn.BackgroundColor3 = Theme.panel
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 11
-    btn.TextColor3 = Theme.accent
-    btn.Text = options[current]
-    btn.ZIndex = 6
-    btn.Parent = row
-    round(btn, 6)
-
-    btn.MouseButton1Click:Connect(function()
-        current = current % #options + 1
-        btn.Text = options[current]
-        if callback then callback(options[current]) end
-    end)
-    return row
-end
-
 local function button(page, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 32)
@@ -565,12 +505,12 @@ local function swatches(page, text, callback)
     label.Parent = row
 
     local colors = {
-        Color3.fromRGB(178, 120, 255),
+        Color3.fromRGB(255, 45, 45),
         Color3.fromRGB(255, 110, 180),
+        Color3.fromRGB(178, 120, 255),
         Color3.fromRGB(110, 220, 255),
         Color3.fromRGB(120, 255, 160),
         Color3.fromRGB(255, 210, 100),
-        Color3.fromRGB(255, 90, 90),
         Color3.fromRGB(255, 255, 255),
     }
 
@@ -610,10 +550,10 @@ end
 -- ==================== FIN DE LA PARTE 1 ====================
 
 local pHome  = makePage("Inicio", "⌂")
-local pAim   = makePage("AimBot", "◎")
 local pVis   = makePage("Visual", "◉")
+local pShot  = makePage("Auto Shot", "◎")
 local pKill  = makePage("Kill All", "☠")
-local pInv   = makePage("Invisible", "🐲😿")
+local pInv   = makePage("Invisible", "👻")
 local pCheat = makePage("Tramposo", "⚡")
 local pFarm  = makePage("Zona de farmeo", "⚙")
 
@@ -626,7 +566,7 @@ status.Font = Enum.Font.GothamMedium
 status.TextSize = 11
 status.TextWrapped = true
 status.TextColor3 = Theme.sub
-status.Text = "AimBot: OFF | Silent: OFF | ESP: OFF | detectados: 0"
+status.Text = "ESP: OFF | Auto Shot: OFF | detectados: 0"
 status.ZIndex = 5
 status.Parent = pHome
 round(status, 8)
@@ -636,46 +576,26 @@ button(pHome, "Reiniciar personaje", function()
 end)
 button(pHome, "Minimizar panel", function() Main.Visible = false Float.Visible = true end)
 
-section(pAim, "Auto Shoot")
-toggle(pAim, "Auto Shoot (dispara al del ESP)", false, function(v) Config.autoShoot = v end)
-toggle(pAim, "Sacar arma de fuego sola", true, function(v) Config.autoEquip = v end)
-dropdown(pAim, "Parte del cuerpo", {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}, "Head", function(v)
-    Config.aimPart = v
-end)
-slider(pAim, "Cadencia", 0.05, 0.8, 0.2, function(v) Config.shootDelay = v end)
-slider(pAim, "Rango de disparo", 20, 300, 120, function(v) Config.aimRange = v end)
-
-section(pAim, "AimBot de cámara")
-toggle(pAim, "AimBot", false, function(v) Config.aimBot = v end)
-toggle(pAim, "Solo si el enemigo está cerca", true, function(v) Config.aimNearOnly = v end)
-toggle(pAim, "Soltar cámara al arrastrar", true, function(v) Config.pauseOnDrag = v end)
-slider(pAim, "Suavizado", 0.02, 1, 0.18, function(v) Config.aimSmooth = v end)
-slider(pAim, "FOV", 20, 400, 120, function(v) Config.aimFov = v end)
-slider(pAim, "Predicción", 0, 0.5, 0, function(v) Config.prediction = v end)
-
 section(pVis, "ESP")
-toggle(pVis, "Resaltado (cajas)", false, function(v) Config.espBox = v end)
-toggle(pVis, "Nombres", false, function(v) Config.espName = v end)
+toggle(pVis, "Caja 3D en el jugador", false, function(v) Config.espBox = v end)
+toggle(pVis, "Nombre arriba", false, function(v) Config.espName = v end)
 toggle(pVis, "Distancia", false, function(v) Config.espDistance = v end)
-toggle(pVis, "Trazadores", false, function(v) Config.espTracer = v end)
-toggle(pVis, "Ignorar mi equipo", true, function(v) Config.espTeamCheck = v end)
-toggle(pVis, "Ver sin límite de rango", false, function(v) Config.espNoLimit = v end)
-slider(pVis, "Rango visible (m)", 30, 800, 300, function(v) Config.espRange = v end)
+swatches(pVis, "Color", function(col) Config.espColor = col end)
+slider(pVis, "Rango (solo partida)", 40, 400, 220, function(v) Config.espRange = v end)
 
-section(pVis, "FOV")
-toggle(pVis, "Mostrar círculo FOV", true, function(v) Config.showFov = v end)
-swatches(pVis, "Color del FOV", function(col) Config.fovColor = col end)
-slider(pVis, "FOV Silent", 20, 500, 150, function(v) Config.silentFov = v end)
-toggle(pVis, "Silent Aim", false, function(v) Config.silentAim = v end)
+section(pShot, "Auto Shot (depende del ESP)")
+toggle(pShot, "Auto Shot (dispara al del ESP)", false, function(v) Config.autoShoot = v end)
+toggle(pShot, "Sacar arma de fuego sola", true, function(v) Config.autoEquip = v end)
+slider(pShot, "Cadencia", 0.05, 0.8, 0.18, function(v) Config.shootDelay = v end)
+button(pShot, "Sacar arma ahora", function() if equipGun then equipGun() end end)
 
 section(pKill, "Kill All")
-slider(pKill, "Rango de teletransporte", 30, 500, 250, function(v) Config.killRange = v end)
+slider(pKill, "Rango de teletransporte", 30, 400, 200, function(v) Config.killRange = v end)
 button(pKill, "Kill All (solo la partida)", function()
     if killAllOnce then killAllOnce() end
 end)
 button(pKill, "Volver al spawn", function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hrp = getHRP(LocalPlayer)
     if hrp then
         hrp.CFrame = CFrame.new(0, 25, 0)
         hrp.AssemblyLinearVelocity = Vector3.zero
@@ -693,24 +613,13 @@ end)
 toggle(pCheat, "Modo seguro (recomendado)", true, function(v) Config.safeMode = v end)
 button(pCheat, "Apagar todo", function()
     Config.autoShoot = false
-    Config.aimBot = false
-    Config.silentAim = false
     Config.espBox = false
     Config.espName = false
     Config.espDistance = false
-    Config.espTracer = false
     Config.farmEvent = false
     Config.farmStreak = false
     Config.invisible = false
     notify("Todo apagado")
-end)
-button(pCheat, "Copiar mi posición", function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        setclipboard(tostring(hrp.CFrame))
-        notify("Posición copiada")
-    end
 end)
 
 section(pFarm, "Automatización")
@@ -775,20 +684,6 @@ Mini.MouseButton1Click:Connect(function()
 end)
 Close.MouseButton1Click:Connect(function() Screen:Destroy() end)
 
-local FovFrame = Instance.new("Frame")
-FovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-FovFrame.Position = UDim2.fromScale(0.5, 0.5)
-FovFrame.BackgroundTransparency = 1
-FovFrame.BorderSizePixel = 0
-FovFrame.ZIndex = 5
-FovFrame.Parent = Screen
-round(FovFrame, 999)
-local fovStroke = Instance.new("UIStroke")
-fovStroke.Color = Config.fovColor
-fovStroke.Thickness = 1.6
-fovStroke.Transparency = 0.25
-fovStroke.Parent = FovFrame
-
 --==================== ARMAS ====================
 local function getGun()
     local char = LocalPlayer.Character
@@ -802,7 +697,7 @@ local function getGun()
     end
 end
 
-local function equipGun()
+function equipGun()
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hum then return nil end
@@ -830,7 +725,7 @@ local function shoot()
     end
 end
 
---==================== ESP ====================
+--==================== ESP (caja 3D) ====================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "NexusESP"
 espFolder.Parent = Camera
@@ -840,31 +735,30 @@ local espData = {}
 local function clearEsp(plr)
     local d = espData[plr]
     if d then
-        pcall(function() d.hl:Destroy() end)
+        pcall(function() d.box:Destroy() end)
         pcall(function() d.gui:Destroy() end)
-        pcall(function() if d.line then d.line:Remove() end end)
         espData[plr] = nil
     end
 end
 
 local function buildEsp(plr)
     local char = plr.Character
-    if not char then return end
-    local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-    if not head then return end
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local head = char:FindFirstChild("Head") or hrp
 
-    local hl = Instance.new("Highlight")
-    hl.Adornee = char
-    hl.FillColor = Config.fovColor
-    hl.OutlineColor = Theme.accent2
-    hl.FillTransparency = 0.75
-    hl.OutlineTransparency = 0
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.Parent = espFolder
+    local box = Instance.new("BoxHandleAdornment")
+    box.Adornee = hrp
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Color3 = Config.espColor
+    box.Transparency = 0.65
+    box.Size = Vector3.new(4, 5.5, 4)
+    box.Parent = espFolder
 
     local gui = Instance.new("BillboardGui")
-    gui.Size = UDim2.fromOffset(120, 40)
-    gui.StudsOffset = Vector3.new(0, 3.2, 0)
+    gui.Size = UDim2.fromOffset(150, 34)
+    gui.StudsOffset = Vector3.new(0, 3.6, 0)
     gui.AlwaysOnTop = true
     gui.Adornee = head
     gui.Parent = espFolder
@@ -873,9 +767,9 @@ local function buildEsp(plr)
     nameLbl.Size = UDim2.new(1, 0, 0, 18)
     nameLbl.BackgroundTransparency = 1
     nameLbl.Font = Enum.Font.GothamBold
-    nameLbl.TextSize = 12
-    nameLbl.TextColor3 = Theme.accent2
-    nameLbl.TextStrokeTransparency = 0.2
+    nameLbl.TextSize = 13
+    nameLbl.TextColor3 = Config.espColor
+    nameLbl.TextStrokeTransparency = 0.15
     nameLbl.Text = plr.Name
     nameLbl.Parent = gui
 
@@ -884,28 +778,19 @@ local function buildEsp(plr)
     distLbl.Position = UDim2.fromOffset(0, 18)
     distLbl.BackgroundTransparency = 1
     distLbl.Font = Enum.Font.GothamMedium
-    distLbl.TextSize = 10
-    distLbl.TextColor3 = Theme.text
-    distLbl.TextStrokeTransparency = 0.2
+    distLbl.TextSize = 11
+    distLbl.TextColor3 = Config.espColor
+    distLbl.TextStrokeTransparency = 0.15
     distLbl.Text = ""
     distLbl.Parent = gui
 
-    local line
-    if Drawing then
-        pcall(function()
-            line = Drawing.new("Line")
-            line.Thickness = 1
-            line.Color = Config.fovColor
-        end)
-    end
-
-    espData[plr] = { hl = hl, gui = gui, name = nameLbl, dist = distLbl, line = line }
+    espData[plr] = { box = box, gui = gui, name = nameLbl, dist = distLbl }
 end
 
 local function refreshEsp()
     for _, plr in ipairs(Players:GetPlayers()) do
         if inRange(plr, Config.espRange) then
-            if not espData[plr] or not espData[plr].hl.Parent then
+            if not espData[plr] or not espData[plr].box.Parent then
                 clearEsp(plr)
                 buildEsp(plr)
             end
@@ -920,31 +805,16 @@ end
 
 Players.PlayerRemoving:Connect(clearEsp)
 
-local touching = false
-UserInputService.InputBegan:Connect(function(i, processed)
-    if processed then return end
-    if i.UserInputType == Enum.UserInputType.Touch
-    or i.UserInputType == Enum.UserInputType.MouseButton1 then
-        touching = true
-    end
-end)
-UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.Touch
-    or i.UserInputType == Enum.UserInputType.MouseButton1 then
-        touching = false
-    end
-end)
-
-local function getClosest(fovRadius, range)
-    local best, bestDist = nil, fovRadius
-    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr) and (range <= 0 or distTo(plr) <= range) then
-            local part = getPart(plr)
-            if part then
-                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+-- Objetivo = el más cercano que YA está en el ESP
+local function getEspTarget()
+    local best, bestDist = nil, math.huge
+    for plr in pairs(espData) do
+        if isAlive(plr) then
+            local hrp = getHRP(plr)
+            if hrp then
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                 if onScreen then
-                    local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    local d = distTo(plr)
                     if d < bestDist then best, bestDist = plr, d end
                 end
             end
@@ -953,35 +823,11 @@ local function getClosest(fovRadius, range)
     return best
 end
 
-pcall(function()
-    local mt = getrawmetatable(game)
-    local oldIndex = mt.__index
-    setreadonly(mt, false)
-    mt.__index = newcclosure(function(self, key)
-        if checkcaller() then return oldIndex(self, key) end
-        if Config.silentAim and self == Mouse then
-            local target = getClosest(Config.silentFov, Config.silentRange)
-            local part = target and getPart(target)
-            if part then
-                if key == "Hit" then return part.CFrame end
-                if key == "Target" then return part end
-                if key == "HitPosition" then return part.Position end
-                if key == "UnitRay" then
-                    return Ray.new(Camera.CFrame.Position, (part.Position - Camera.CFrame.Position).Unit * 2000)
-                end
-            end
-        end
-        return oldIndex(self, key)
-    end)
-    setreadonly(mt, true)
-end)
-
 local teleportLock = false
 function killAllOnce()
     if teleportLock then return end
     teleportLock = true
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hrp = getHRP(LocalPlayer)
     if not hrp then teleportLock = false return end
 
     if Config.autoEquip then equipGun() end
@@ -989,11 +835,11 @@ function killAllOnce()
     local count = 0
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and isAlive(plr) and distTo(plr) <= Config.killRange then
-            local part = getPart(plr)
-            if part then
+            local target = getHRP(plr)
+            if target then
                 count = count + 1
                 hrp.AssemblyLinearVelocity = Vector3.zero
-                hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
+                hrp.CFrame = target.CFrame * CFrame.new(0, 0, -2.5)
                 waitSafe(0.2)
                 shoot()
                 waitSafe(0.15)
@@ -1012,52 +858,29 @@ local farmIndex = 1
 local detected = 0
 
 RunService.RenderStepped:Connect(function(dt)
-    fovStroke.Color = Config.fovColor
-    local radius = Config.silentAim and Config.silentFov or Config.aimFov
-    FovFrame.Visible = Config.showFov
-    FovFrame.Size = UDim2.fromOffset(radius * 2, radius * 2)
-
-    if Config.aimBot and not (Config.pauseOnDrag and touching) then
-        local target = getClosest(Config.aimFov, Config.aimRange)
-        local part = target and getPart(target)
-        if part then
-            local near = true
-            if Config.aimNearOnly then near = distTo(target) <= Config.aimRange end
-            if near then
-                local dest = part.Position + part.AssemblyLinearVelocity * Config.prediction
-                local goal = CFrame.lookAt(Camera.CFrame.Position, dest)
-                Camera.CFrame = Camera.CFrame:Lerp(goal, math.clamp(Config.aimSmooth * 0.35, 0.01, 0.6))
-            end
-        end
-    end
-
     espAcc = espAcc + dt
-    if espAcc >= 0.08 then
+    if espAcc >= 0.05 then
         espAcc = 0
-        local anyEsp = Config.espBox or Config.espName or Config.espDistance or Config.espTracer
+        local anyEsp = Config.espBox or Config.espName or Config.espDistance
         if anyEsp then
             refreshEsp()
             detected = 0
             for plr, d in pairs(espData) do
                 local char = plr.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if hrp and d.gui then
+                if hrp then
                     detected = detected + 1
-                    d.hl.Enabled = Config.espBox
-                    d.hl.FillColor = Config.fovColor
+                    d.box.Enabled = Config.espBox
+                    d.box.Color3 = Config.espColor
+                    pcall(function()
+                        d.box.Size = char:GetExtentsSize() * 1.12
+                    end)
                     d.gui.Enabled = Config.espName or Config.espDistance
                     d.name.Visible = Config.espName
+                    d.name.TextColor3 = Config.espColor
                     d.dist.Visible = Config.espDistance
                     d.dist.Text = math.floor(distTo(plr)) .. "m"
-                    if d.line then
-                        d.line.Color = Config.fovColor
-                        local pos, on = Camera:WorldToViewportPoint(hrp.Position)
-                        d.line.Visible = Config.espTracer and on
-                        if Config.espTracer and on then
-                            d.line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                            d.line.To = Vector2.new(pos.X, pos.Y)
-                        end
-                    end
+                    d.dist.TextColor3 = Config.espColor
                 end
             end
         else
@@ -1066,11 +889,12 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
+    -- Auto Shot: solo a lo que el ESP tiene marcado
     if Config.autoShoot then
-        local target = getClosest(Config.aimFov, Config.aimRange)
-        if target and isAlive(target) then
+        local target = getEspTarget()
+        if target then
             if Config.autoEquip then equipGun() end
-            local delay = Config.safeMode and Config.shootDelay * 1.6 or Config.shootDelay
+            local delay = Config.safeMode and Config.shootDelay * 1.4 or Config.shootDelay
             if os.clock() - lastShot >= delay then
                 lastShot = os.clock()
                 shoot()
@@ -1105,17 +929,16 @@ task.spawn(function()
     while Screen.Parent do
         task.wait(0.2)
         if (Config.farmEvent or Config.farmStreak) and not teleportLock then
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hrp = getHRP(LocalPlayer)
             local list = {}
             for _, plr in ipairs(Players:GetPlayers()) do
                 if inRange(plr, Config.killRange) then table.insert(list, plr) end
             end
             if hrp and #list > 0 then
                 farmIndex = farmIndex % #list + 1
-                local part = getPart(list[farmIndex])
-                if part then
-                    hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
+                local target = getHRP(list[farmIndex])
+                if target then
+                    hrp.CFrame = target.CFrame * CFrame.new(0, 0, -2.5)
                     task.wait(Config.safeMode and 0.4 or 0.25)
                     shoot()
                 end
@@ -1134,14 +957,13 @@ task.spawn(function()
             Ping.BackgroundColor3 = ping < 150 and Theme.green
                 or (ping < 350 and Color3.fromRGB(240, 190, 90) or Theme.red)
         end
-        status.Text = string.format("AimBot: %s | Silent: %s | ESP: %s | detectados: %d",
-            Config.aimBot and "ON" or "OFF",
-            Config.silentAim and "ON" or "OFF",
+        status.Text = string.format("ESP: %s | Auto Shot: %s | detectados: %d",
             (Config.espBox or Config.espName or Config.espDistance) and "ON" or "OFF",
+            Config.autoShoot and "ON" or "OFF",
             detected)
         task.wait(1)
     end
 end)
 
-notify("Nexus-HUB v5 cargado")
-print("[Nexus-HUB] v5 cargado")
+notify("Nexus-HUB v6 cargado")
+print("[Nexus-HUB] v6 cargado")
