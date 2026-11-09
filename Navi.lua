@@ -1,6 +1,6 @@
 --[[
     NEXUS-HUB | DUELOS -- By Navi
-    v4: filtro de rango, aimbot que no bloquea, FOV con color, fondo visible
+    v5: distancia por cámara, disparo por Tool:Activate, ESP con contador
 --]]
 
 local Players           = game:GetService("Players")
@@ -15,6 +15,7 @@ local Camera            = Workspace.CurrentCamera
 local Mouse             = LocalPlayer:GetMouse()
 
 local BG_URL = "https://files.catbox.moe/cjy2y9.jpg"
+local GUNS = {"gun", "revolver", "pistol", "blaster", "laser", "chroma", "rifle", "sniper"}
 
 local Theme = {
     bg      = Color3.fromRGB(20, 18, 32),
@@ -43,13 +44,14 @@ local Config = {
     showFov         = true,
     fovColor        = Color3.fromRGB(178, 120, 255),
     autoShoot       = false,
-    shootDelay      = 0.15,
+    shootDelay      = 0.2,
     autoEquip       = true,
     espBox          = false,
     espName         = false,
     espDistance     = false,
     espTracer       = false,
-    espRange        = 250,
+    espRange        = 300,
+    espNoLimit      = false,
     espTeamCheck    = true,
     invisible       = false,
     safeMode        = true,
@@ -100,13 +102,8 @@ local function waitSafe(base)
     task.wait(Config.safeMode and base * 2 or base)
 end
 
-local function getChar(plr)
-    plr = plr or LocalPlayer
-    return plr.Character
-end
-
 local function getPart(plr)
-    local char = plr.Character
+    local char = plr and plr.Character
     if not char then return nil end
     local p = char:FindFirstChild(Config.aimPart) or char:FindFirstChild("HumanoidRootPart")
     if p and p:IsA("BasePart") then return p end
@@ -118,19 +115,18 @@ local function isAlive(plr)
     return hum ~= nil and hum.Health > 0
 end
 
-local function distanceTo(plr)
-    local hrp = getChar()
-    hrp = hrp and hrp:FindFirstChild("HumanoidRootPart")
-    local other = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp or not other then return 9999 end
-    return (hrp.Position - other.Position).Magnitude
+-- Distancia desde la cámara: no falla si falta el HRP
+local function distTo(plr)
+    local part = getPart(plr)
+    if not part then return 9999 end
+    return (Camera.CFrame.Position - part.Position).Magnitude
 end
 
--- Solo jugadores dentro de la partida (no lobby)
 local function inRange(plr, range)
     if plr == LocalPlayer or not isAlive(plr) then return false end
     if Config.espTeamCheck and plr.Team and plr.Team == LocalPlayer.Team then return false end
-    return distanceTo(plr) <= range
+    if Config.espNoLimit or range <= 0 then return true end
+    return distTo(plr) <= range
 end
 
 local function loadAsset(url, name)
@@ -170,7 +166,6 @@ BgLayer.ZIndex = 1
 BgLayer.Parent = Main
 
 local bgVeil
-
 local bgAsset = loadAsset(BG_URL, "navi_bg.jpg")
 if bgAsset then
     local Img = Instance.new("ImageLabel")
@@ -612,7 +607,7 @@ local function notify(msg)
     end)
 end
 
--- ==================== CORTE: FIN DE LA PARTE 1 ====================
+-- ==================== FIN DE LA PARTE 1 ====================
 
 local pHome  = makePage("Inicio", "⌂")
 local pAim   = makePage("AimBot", "◎")
@@ -624,14 +619,14 @@ local pFarm  = makePage("Zona de farmeo", "⚙")
 
 section(pHome, "Estado")
 local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, 0, 0, 46)
+status.Size = UDim2.new(1, 0, 0, 60)
 status.BackgroundColor3 = Theme.bg
 status.BackgroundTransparency = 0.45
 status.Font = Enum.Font.GothamMedium
 status.TextSize = 11
 status.TextWrapped = true
 status.TextColor3 = Theme.sub
-status.Text = "AimBot: OFF  |  Silent: OFF  |  ESP: OFF"
+status.Text = "AimBot: OFF | Silent: OFF | ESP: OFF | detectados: 0"
 status.ZIndex = 5
 status.Parent = pHome
 round(status, 8)
@@ -643,11 +638,11 @@ button(pHome, "Minimizar panel", function() Main.Visible = false Float.Visible =
 
 section(pAim, "Auto Shoot")
 toggle(pAim, "Auto Shoot (dispara al del ESP)", false, function(v) Config.autoShoot = v end)
-toggle(pAim, "Sacar arma sola", true, function(v) Config.autoEquip = v end)
+toggle(pAim, "Sacar arma de fuego sola", true, function(v) Config.autoEquip = v end)
 dropdown(pAim, "Parte del cuerpo", {"Head", "UpperTorso", "Torso", "HumanoidRootPart"}, "Head", function(v)
     Config.aimPart = v
 end)
-slider(pAim, "Cadencia", 0.05, 0.6, 0.15, function(v) Config.shootDelay = v end)
+slider(pAim, "Cadencia", 0.05, 0.8, 0.2, function(v) Config.shootDelay = v end)
 slider(pAim, "Rango de disparo", 20, 300, 120, function(v) Config.aimRange = v end)
 
 section(pAim, "AimBot de cámara")
@@ -664,7 +659,8 @@ toggle(pVis, "Nombres", false, function(v) Config.espName = v end)
 toggle(pVis, "Distancia", false, function(v) Config.espDistance = v end)
 toggle(pVis, "Trazadores", false, function(v) Config.espTracer = v end)
 toggle(pVis, "Ignorar mi equipo", true, function(v) Config.espTeamCheck = v end)
-slider(pVis, "Rango visible (m)", 30, 800, 250, function(v) Config.espRange = v end)
+toggle(pVis, "Ver sin límite de rango", false, function(v) Config.espNoLimit = v end)
+slider(pVis, "Rango visible (m)", 30, 800, 300, function(v) Config.espRange = v end)
 
 section(pVis, "FOV")
 toggle(pVis, "Mostrar círculo FOV", true, function(v) Config.showFov = v end)
@@ -673,12 +669,12 @@ slider(pVis, "FOV Silent", 20, 500, 150, function(v) Config.silentFov = v end)
 toggle(pVis, "Silent Aim", false, function(v) Config.silentAim = v end)
 
 section(pKill, "Kill All")
-slider(pKill, "Rango de teletransporte", 30, 500, 200, function(v) Config.killRange = v end)
+slider(pKill, "Rango de teletransporte", 30, 500, 250, function(v) Config.killRange = v end)
 button(pKill, "Kill All (solo la partida)", function()
     if killAllOnce then killAllOnce() end
 end)
 button(pKill, "Volver al spawn", function()
-    local char = getChar()
+    local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
         hrp.CFrame = CFrame.new(0, 25, 0)
@@ -709,7 +705,7 @@ button(pCheat, "Apagar todo", function()
     notify("Todo apagado")
 end)
 button(pCheat, "Copiar mi posición", function()
-    local char = getChar()
+    local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
         setclipboard(tostring(hrp.CFrame))
@@ -779,7 +775,6 @@ Mini.MouseButton1Click:Connect(function()
 end)
 Close.MouseButton1Click:Connect(function() Screen:Destroy() end)
 
--- Círculo FOV
 local FovFrame = Instance.new("Frame")
 FovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 FovFrame.Position = UDim2.fromScale(0.5, 0.5)
@@ -794,7 +789,48 @@ fovStroke.Thickness = 1.6
 fovStroke.Transparency = 0.25
 fovStroke.Parent = FovFrame
 
--- ESP
+--==================== ARMAS ====================
+local function getGun()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        local n = tool.Name:lower()
+        for _, k in ipairs(GUNS) do
+            if n:find(k) then return tool end
+        end
+    end
+end
+
+local function equipGun()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hum then return nil end
+    local current = getGun()
+    if current then return current end
+    for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if t:IsA("Tool") then
+            local n = t.Name:lower()
+            for _, k in ipairs(GUNS) do
+                if n:find(k) then
+                    pcall(function() hum:EquipTool(t) end)
+                    return t
+                end
+            end
+        end
+    end
+end
+
+local function shoot()
+    local gun = getGun()
+    if gun then
+        pcall(function() gun:Activate() end)
+    else
+        pcall(function() mouse1click() end)
+    end
+end
+
+--==================== ESP ====================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "NexusESP"
 espFolder.Parent = Camera
@@ -884,7 +920,6 @@ end
 
 Players.PlayerRemoving:Connect(clearEsp)
 
--- El jugador suelta la cámara mientras arrastra la pantalla
 local touching = false
 UserInputService.InputBegan:Connect(function(i, processed)
     if processed then return end
@@ -904,7 +939,7 @@ local function getClosest(fovRadius, range)
     local best, bestDist = nil, fovRadius
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr) and distanceTo(plr) <= (range or 400) then
+        if plr ~= LocalPlayer and isAlive(plr) and (range <= 0 or distTo(plr) <= range) then
             local part = getPart(plr)
             if part then
                 local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
@@ -945,21 +980,22 @@ local teleportLock = false
 function killAllOnce()
     if teleportLock then return end
     teleportLock = true
-    local char = getChar()
+    local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then teleportLock = false return end
 
+    if Config.autoEquip then equipGun() end
     local origin = hrp.CFrame
     local count = 0
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and isAlive(plr) and distanceTo(plr) <= Config.killRange then
+        if plr ~= LocalPlayer and isAlive(plr) and distTo(plr) <= Config.killRange then
             local part = getPart(plr)
             if part then
                 count = count + 1
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
                 waitSafe(0.2)
-                pcall(function() mouse1click() end)
+                shoot()
                 waitSafe(0.15)
             end
         end
@@ -973,6 +1009,7 @@ end
 
 local lastShot, espAcc = 0, 0
 local farmIndex = 1
+local detected = 0
 
 RunService.RenderStepped:Connect(function(dt)
     fovStroke.Color = Config.fovColor
@@ -980,13 +1017,12 @@ RunService.RenderStepped:Connect(function(dt)
     FovFrame.Visible = Config.showFov
     FovFrame.Size = UDim2.fromOffset(radius * 2, radius * 2)
 
-    -- AimBot: solo engancha si hay objetivo y no estás arrastrando
     if Config.aimBot and not (Config.pauseOnDrag and touching) then
         local target = getClosest(Config.aimFov, Config.aimRange)
         local part = target and getPart(target)
         if part then
             local near = true
-            if Config.aimNearOnly then near = distanceTo(target) <= Config.aimRange end
+            if Config.aimNearOnly then near = distTo(target) <= Config.aimRange end
             if near then
                 local dest = part.Position + part.AssemblyLinearVelocity * Config.prediction
                 local goal = CFrame.lookAt(Camera.CFrame.Position, dest)
@@ -1001,16 +1037,18 @@ RunService.RenderStepped:Connect(function(dt)
         local anyEsp = Config.espBox or Config.espName or Config.espDistance or Config.espTracer
         if anyEsp then
             refreshEsp()
+            detected = 0
             for plr, d in pairs(espData) do
                 local char = plr.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if hrp and d.gui then
+                    detected = detected + 1
                     d.hl.Enabled = Config.espBox
                     d.hl.FillColor = Config.fovColor
                     d.gui.Enabled = Config.espName or Config.espDistance
                     d.name.Visible = Config.espName
                     d.dist.Visible = Config.espDistance
-                    d.dist.Text = math.floor(distanceTo(plr)) .. "m"
+                    d.dist.Text = math.floor(distTo(plr)) .. "m"
                     if d.line then
                         d.line.Color = Config.fovColor
                         local pos, on = Camera:WorldToViewportPoint(hrp.Position)
@@ -1023,6 +1061,7 @@ RunService.RenderStepped:Connect(function(dt)
                 end
             end
         else
+            detected = 0
             for plr in pairs(espData) do clearEsp(plr) end
         end
     end
@@ -1030,19 +1069,11 @@ RunService.RenderStepped:Connect(function(dt)
     if Config.autoShoot then
         local target = getClosest(Config.aimFov, Config.aimRange)
         if target and isAlive(target) then
-            if Config.autoEquip then
-                local char = LocalPlayer.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum and not char:FindFirstChildOfClass("Tool") then
-                    for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
-                        if t:IsA("Tool") then pcall(function() hum:EquipTool(t) end) break end
-                    end
-                end
-            end
+            if Config.autoEquip then equipGun() end
             local delay = Config.safeMode and Config.shootDelay * 1.6 or Config.shootDelay
             if os.clock() - lastShot >= delay then
                 lastShot = os.clock()
-                pcall(function() mouse1click() end)
+                shoot()
             end
         end
     end
@@ -1074,7 +1105,7 @@ task.spawn(function()
     while Screen.Parent do
         task.wait(0.2)
         if (Config.farmEvent or Config.farmStreak) and not teleportLock then
-            local char = getChar()
+            local char = LocalPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local list = {}
             for _, plr in ipairs(Players:GetPlayers()) do
@@ -1086,7 +1117,7 @@ task.spawn(function()
                 if part then
                     hrp.CFrame = part.CFrame * CFrame.new(0, 0, -2.5)
                     task.wait(Config.safeMode and 0.4 or 0.25)
-                    pcall(function() mouse1click() end)
+                    shoot()
                 end
             end
         end
@@ -1103,14 +1134,14 @@ task.spawn(function()
             Ping.BackgroundColor3 = ping < 150 and Theme.green
                 or (ping < 350 and Color3.fromRGB(240, 190, 90) or Theme.red)
         end
-        status.Text = string.format("AimBot: %s | Silent: %s | ESP: %s | AutoShoot: %s",
+        status.Text = string.format("AimBot: %s | Silent: %s | ESP: %s | detectados: %d",
             Config.aimBot and "ON" or "OFF",
             Config.silentAim and "ON" or "OFF",
             (Config.espBox or Config.espName or Config.espDistance) and "ON" or "OFF",
-            Config.autoShoot and "ON" or "OFF")
+            detected)
         task.wait(1)
     end
 end)
 
-notify("Nexus-HUB v4 cargado")
-print("[Nexus-HUB] v4 cargado")
+notify("Nexus-HUB v5 cargado")
+print("[Nexus-HUB] v5 cargado")
