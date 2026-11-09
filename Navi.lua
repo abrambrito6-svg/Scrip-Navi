@@ -1,6 +1,6 @@
 --[[
     NEXUS-HUB | DUELOS -- By Navi
-    v7: solo enemigos, disparo por Tool:Activate (sin mouse1click)
+    v8: snap aim al disparar + tap (Activate/Deactivate)
 --]]
 
 local Players           = game:GetService("Players")
@@ -10,7 +10,6 @@ local TweenService      = game:GetService("TweenService")
 local Workspace         = game:GetService("Workspace")
 local StarterGui        = game:GetService("StarterGui")
 local Stats             = game:GetService("Stats")
-local VIM               = game:GetService("VirtualInputManager")
 local LocalPlayer       = Players.LocalPlayer
 local Camera            = Workspace.CurrentCamera
 
@@ -40,7 +39,8 @@ local Config = {
     autoEquip       = true,
     shootDelay      = 0.35,
     shootRange      = 110,
-    shootMode       = "Activate",
+    snapAim         = true,
+    tapMode         = true,
     invisible       = false,
     safeMode        = true,
     bgOpacity       = 0.5,
@@ -108,7 +108,6 @@ local function distTo(plr)
     return (Camera.CFrame.Position - part.Position).Magnitude
 end
 
--- Solo enemigos, dentro de la partida
 local function inRange(plr, range)
     if plr == LocalPlayer or not isAlive(plr) then return false end
     if Config.onlyEnemies and plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
@@ -471,50 +470,6 @@ local function slider(page, text, min, max, default, callback)
     return row
 end
 
-local function dropdown(page, text, options, default, callback)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 34)
-    row.BackgroundColor3 = Theme.bg
-    row.BackgroundTransparency = 0.45
-    row.ZIndex = 4
-    row.Parent = page
-    round(row, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.45, -10, 1, 0)
-    label.Position = UDim2.fromOffset(10, 0)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamMedium
-    label.TextSize = 11
-    label.TextColor3 = Theme.text
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = text
-    label.ZIndex = 5
-    label.Parent = row
-
-    local current = 1
-    for i, o in ipairs(options) do if o == default then current = i end end
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.55, -14, 0, 22)
-    btn.Position = UDim2.new(0.45, 4, 0.5, -11)
-    btn.BackgroundColor3 = Theme.panel
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 11
-    btn.TextColor3 = Theme.accent
-    btn.Text = options[current]
-    btn.ZIndex = 6
-    btn.Parent = row
-    round(btn, 6)
-
-    btn.MouseButton1Click:Connect(function()
-        current = current % #options + 1
-        btn.Text = options[current]
-        if callback then callback(options[current]) end
-    end)
-    return row
-end
-
 local function button(page, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 32)
@@ -596,7 +551,6 @@ local function notify(msg)
 end
 
 -- ==================== FIN DE LA PARTE 1 ====================
-
 local pHome  = makePage("Inicio", "⌂")
 local pVis   = makePage("Visual", "◉")
 local pShot  = makePage("Auto Shot", "◎")
@@ -635,12 +589,11 @@ slider(pVis, "Rango (solo partida)", 40, 400, 220, function(v) Config.espRange =
 section(pShot, "Auto Shot")
 toggle(pShot, "Auto Shot (dispara al del ESP)", false, function(v) Config.autoShoot = v end)
 toggle(pShot, "Sacar arma de fuego sola", true, function(v) Config.autoEquip = v end)
-dropdown(pShot, "Método de disparo", {"Activate", "Virtual", "Activate+Virtual"}, "Activate", function(v)
-    Config.shootMode = v
-end)
+toggle(pShot, "Apuntar antes de disparar", true, function(v) Config.snapAim = v end)
+toggle(pShot, "Soltar gatillo (tap)", true, function(v) Config.tapMode = v end)
 slider(pShot, "Rango de disparo", 20, 250, 110, function(v) Config.shootRange = v end)
 slider(pShot, "Cadencia", 0.1, 1, 0.35, function(v) Config.shootDelay = v end)
-button(pShot, "Probar disparo (una vez)", function() if testShot then testShot() end end)
+button(pShot, "Probar disparo al enemigo", function() if testShot then testShot() end end)
 button(pShot, "Sacar arma ahora", function() if equipGun then equipGun() end end)
 
 section(pKill, "Kill All")
@@ -770,37 +723,40 @@ function equipGun()
     end
 end
 
-local function virtualClick()
-    local vp = Camera.ViewportSize
-    local x, y = math.floor(vp.X * 0.5), math.floor(vp.Y * 0.32)
-    pcall(function()
-        VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
-        task.wait(0.02)
-        VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
-    end)
-end
-
-local function shoot()
+-- Apunta solo un frame y dispara (press + release)
+local function shoot(part)
     local gun = getGun()
     if not gun then return false end
-    local mode = Config.shootMode
-    if mode == "Activate" or mode == "Activate+Virtual" then
-        pcall(function() gun:Activate() end)
+    if Config.snapAim and part then
+        pcall(function()
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, part.Position)
+        end)
     end
-    if mode == "Virtual" or mode == "Activate+Virtual" then
-        virtualClick()
+    pcall(function() gun:Activate() end)
+    if Config.tapMode then
+        task.delay(0.04, function()
+            pcall(function() gun:Deactivate() end)
+        end)
     end
     return true
 end
 
 function testShot()
+    local target
+    for plr in pairs(espData) do
+        if isAlive(plr) then target = getHRP(plr) break end
+    end
     if not getGun() then
         local g = equipGun()
         if not g then notify("No hay arma de fuego") return end
-        task.wait(0.25)
+        task.wait(0.3)
     end
-    local ok = shoot()
-    notify(ok and "Disparo enviado" or "Sin arma equipada")
+    if target then
+        shoot(target)
+        notify("Disparo al enemigo")
+    else
+        notify("Sin enemigo en el ESP")
+    end
 end
 
 --==================== ESP ====================
@@ -918,7 +874,7 @@ function killAllOnce()
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.CFrame = target.CFrame * CFrame.new(0, 0, -2.5)
                 waitSafe(0.2)
-                shoot()
+                shoot(target)
                 waitSafe(0.15)
             end
         end
@@ -976,7 +932,7 @@ RunService.RenderStepped:Connect(function(dt)
                 local delay = Config.safeMode and Config.shootDelay * 1.4 or Config.shootDelay
                 if os.clock() - lastShot >= delay then
                     lastShot = os.clock()
-                    shoot()
+                    shoot(getHRP(target))
                 end
             end
         end
@@ -1020,7 +976,7 @@ task.spawn(function()
                 if target then
                     hrp.CFrame = target.CFrame * CFrame.new(0, 0, -2.5)
                     task.wait(Config.safeMode and 0.4 or 0.25)
-                    shoot()
+                    shoot(target)
                 end
             end
         end
@@ -1045,5 +1001,5 @@ task.spawn(function()
     end
 end)
 
-notify("Nexus-HUB v7 cargado")
-print("[Nexus-HUB] v7 cargado")
+notify("Nexus-HUB v8 cargado")
+print("[Nexus-HUB] v8 cargado")
