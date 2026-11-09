@@ -1,6 +1,6 @@
 --[[
     NEXUS-HUB | DUELOS -- By Navi
-    v6: ESP 3D tipo caja roja + Auto Shot conectado al ESP
+    v7: solo enemigos, disparo por Tool:Activate (sin mouse1click)
 --]]
 
 local Players           = game:GetService("Players")
@@ -10,6 +10,7 @@ local TweenService      = game:GetService("TweenService")
 local Workspace         = game:GetService("Workspace")
 local StarterGui        = game:GetService("StarterGui")
 local Stats             = game:GetService("Stats")
+local VIM               = game:GetService("VirtualInputManager")
 local LocalPlayer       = Players.LocalPlayer
 local Camera            = Workspace.CurrentCamera
 
@@ -29,17 +30,17 @@ local Theme = {
 }
 
 local Config = {
-    -- ESP
     espBox          = false,
     espName         = false,
     espDistance     = false,
     espColor        = Color3.fromRGB(255, 45, 45),
     espRange        = 220,
-    -- Auto shot
+    onlyEnemies     = true,
     autoShoot       = false,
     autoEquip       = true,
-    shootDelay      = 0.18,
-    -- Varios
+    shootDelay      = 0.35,
+    shootRange      = 110,
+    shootMode       = "Activate",
     invisible       = false,
     safeMode        = true,
     bgOpacity       = 0.5,
@@ -107,9 +108,12 @@ local function distTo(plr)
     return (Camera.CFrame.Position - part.Position).Magnitude
 end
 
--- Solo jugadores dentro de la partida (el lobby queda fuera por distancia)
+-- Solo enemigos, dentro de la partida
 local function inRange(plr, range)
     if plr == LocalPlayer or not isAlive(plr) then return false end
+    if Config.onlyEnemies and plr.Team and LocalPlayer.Team and plr.Team == LocalPlayer.Team then
+        return false
+    end
     return distTo(plr) <= range
 end
 
@@ -467,6 +471,50 @@ local function slider(page, text, min, max, default, callback)
     return row
 end
 
+local function dropdown(page, text, options, default, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 34)
+    row.BackgroundColor3 = Theme.bg
+    row.BackgroundTransparency = 0.45
+    row.ZIndex = 4
+    row.Parent = page
+    round(row, 8)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.45, -10, 1, 0)
+    label.Position = UDim2.fromOffset(10, 0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 11
+    label.TextColor3 = Theme.text
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = text
+    label.ZIndex = 5
+    label.Parent = row
+
+    local current = 1
+    for i, o in ipairs(options) do if o == default then current = i end end
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.55, -14, 0, 22)
+    btn.Position = UDim2.new(0.45, 4, 0.5, -11)
+    btn.BackgroundColor3 = Theme.panel
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextSize = 11
+    btn.TextColor3 = Theme.accent
+    btn.Text = options[current]
+    btn.ZIndex = 6
+    btn.Parent = row
+    round(btn, 6)
+
+    btn.MouseButton1Click:Connect(function()
+        current = current % #options + 1
+        btn.Text = options[current]
+        if callback then callback(options[current]) end
+    end)
+    return row
+end
+
 local function button(page, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 32)
@@ -566,7 +614,7 @@ status.Font = Enum.Font.GothamMedium
 status.TextSize = 11
 status.TextWrapped = true
 status.TextColor3 = Theme.sub
-status.Text = "ESP: OFF | Auto Shot: OFF | detectados: 0"
+status.Text = "ESP: OFF | Auto Shot: OFF | enemigos: 0"
 status.ZIndex = 5
 status.Parent = pHome
 round(status, 8)
@@ -577,16 +625,22 @@ end)
 button(pHome, "Minimizar panel", function() Main.Visible = false Float.Visible = true end)
 
 section(pVis, "ESP")
-toggle(pVis, "Caja 3D en el jugador", false, function(v) Config.espBox = v end)
+toggle(pVis, "Caja 3D en el enemigo", false, function(v) Config.espBox = v end)
 toggle(pVis, "Nombre arriba", false, function(v) Config.espName = v end)
 toggle(pVis, "Distancia", false, function(v) Config.espDistance = v end)
+toggle(pVis, "Solo enemigos (ignorar equipo)", true, function(v) Config.onlyEnemies = v end)
 swatches(pVis, "Color", function(col) Config.espColor = col end)
 slider(pVis, "Rango (solo partida)", 40, 400, 220, function(v) Config.espRange = v end)
 
-section(pShot, "Auto Shot (depende del ESP)")
+section(pShot, "Auto Shot")
 toggle(pShot, "Auto Shot (dispara al del ESP)", false, function(v) Config.autoShoot = v end)
 toggle(pShot, "Sacar arma de fuego sola", true, function(v) Config.autoEquip = v end)
-slider(pShot, "Cadencia", 0.05, 0.8, 0.18, function(v) Config.shootDelay = v end)
+dropdown(pShot, "Método de disparo", {"Activate", "Virtual", "Activate+Virtual"}, "Activate", function(v)
+    Config.shootMode = v
+end)
+slider(pShot, "Rango de disparo", 20, 250, 110, function(v) Config.shootRange = v end)
+slider(pShot, "Cadencia", 0.1, 1, 0.35, function(v) Config.shootDelay = v end)
+button(pShot, "Probar disparo (una vez)", function() if testShot then testShot() end end)
 button(pShot, "Sacar arma ahora", function() if equipGun then equipGun() end end)
 
 section(pKill, "Kill All")
@@ -684,7 +738,7 @@ Mini.MouseButton1Click:Connect(function()
 end)
 Close.MouseButton1Click:Connect(function() Screen:Destroy() end)
 
---==================== ARMAS ====================
+--==================== ARMAS Y DISPARO ====================
 local function getGun()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -716,16 +770,40 @@ function equipGun()
     end
 end
 
-local function shoot()
-    local gun = getGun()
-    if gun then
-        pcall(function() gun:Activate() end)
-    else
-        pcall(function() mouse1click() end)
-    end
+local function virtualClick()
+    local vp = Camera.ViewportSize
+    local x, y = math.floor(vp.X * 0.5), math.floor(vp.Y * 0.32)
+    pcall(function()
+        VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        task.wait(0.02)
+        VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    end)
 end
 
---==================== ESP (caja 3D) ====================
+local function shoot()
+    local gun = getGun()
+    if not gun then return false end
+    local mode = Config.shootMode
+    if mode == "Activate" or mode == "Activate+Virtual" then
+        pcall(function() gun:Activate() end)
+    end
+    if mode == "Virtual" or mode == "Activate+Virtual" then
+        virtualClick()
+    end
+    return true
+end
+
+function testShot()
+    if not getGun() then
+        local g = equipGun()
+        if not g then notify("No hay arma de fuego") return end
+        task.wait(0.25)
+    end
+    local ok = shoot()
+    notify(ok and "Disparo enviado" or "Sin arma equipada")
+end
+
+--==================== ESP ====================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "NexusESP"
 espFolder.Parent = Camera
@@ -805,14 +883,13 @@ end
 
 Players.PlayerRemoving:Connect(clearEsp)
 
--- Objetivo = el más cercano que YA está en el ESP
 local function getEspTarget()
     local best, bestDist = nil, math.huge
     for plr in pairs(espData) do
-        if isAlive(plr) then
+        if isAlive(plr) and distTo(plr) <= Config.shootRange then
             local hrp = getHRP(plr)
             if hrp then
-                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                 if onScreen then
                     local d = distTo(plr)
                     if d < bestDist then best, bestDist = plr, d end
@@ -889,15 +966,18 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- Auto Shot: solo a lo que el ESP tiene marcado
     if Config.autoShoot then
         local target = getEspTarget()
         if target then
-            if Config.autoEquip then equipGun() end
-            local delay = Config.safeMode and Config.shootDelay * 1.4 or Config.shootDelay
-            if os.clock() - lastShot >= delay then
-                lastShot = os.clock()
-                shoot()
+            local gun = getGun()
+            if not gun and Config.autoEquip then
+                equipGun()
+            elseif gun then
+                local delay = Config.safeMode and Config.shootDelay * 1.4 or Config.shootDelay
+                if os.clock() - lastShot >= delay then
+                    lastShot = os.clock()
+                    shoot()
+                end
             end
         end
     end
@@ -957,7 +1037,7 @@ task.spawn(function()
             Ping.BackgroundColor3 = ping < 150 and Theme.green
                 or (ping < 350 and Color3.fromRGB(240, 190, 90) or Theme.red)
         end
-        status.Text = string.format("ESP: %s | Auto Shot: %s | detectados: %d",
+        status.Text = string.format("ESP: %s | Auto Shot: %s | enemigos: %d",
             (Config.espBox or Config.espName or Config.espDistance) and "ON" or "OFF",
             Config.autoShoot and "ON" or "OFF",
             detected)
@@ -965,5 +1045,5 @@ task.spawn(function()
     end
 end)
 
-notify("Nexus-HUB v6 cargado")
-print("[Nexus-HUB] v6 cargado")
+notify("Nexus-HUB v7 cargado")
+print("[Nexus-HUB] v7 cargado")
