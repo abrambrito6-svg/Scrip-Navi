@@ -1,38 +1,23 @@
---[[  Nexus-HUB | Duelos -- By Navi  |  v9  ]]--
--- Apunta moviendo el MOUSE virtual al enemigo (raycast), no la camara sola
+--[[  Nexus-HUB | Brainrot -- By Navi  ]]--
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local DBG = { label = nil, last = "nada" }
-
 local cfg = {
 	esp = false,
-	onlyEnemies = true,
-	onlyInMatch = true,
-	box = true,
+	boxes = true,
 	names = true,
 	dist = true,
-	espRange = 400,
-	autoShot = false,
-	shootRange = 120,
-	killRange = 200,
-	fireRate = 0.18,
-	autoEquip = true,
-	tapMode = true,
-	snap = true,
-	method = "Virtual",
-	farm = false,
+	espRange = 500,
+	speed = false,
+	speedVal = 60,
+	noclip = false,
 }
-
-local GUN_PAT = "gun|pistol|revolver|shotgun|magnum|sniper|rifle|smg|uzi|deagle|colt|ak|m4|machine|weapon"
-local MELEE_PAT = "knife|sword|bat|axe|hammer|melee"
 
 local function getRoot(plr)
 	local ch = plr.Character
@@ -40,44 +25,6 @@ local function getRoot(plr)
 	local hum = ch:FindFirstChildOfClass("Humanoid")
 	if not hum or hum.Health <= 0 then return nil end
 	return ch:FindFirstChild("HumanoidRootPart")
-end
-
-local function getGun()
-	local ch = LP.Character
-	if not ch then return nil end
-	for _, t in ipairs(ch:GetChildren()) do
-		if t:IsA("Tool") and t.Name:lower():match(GUN_PAT) then return t end
-	end
-	for _, t in ipairs(ch:GetChildren()) do
-		if t:IsA("Tool") and not t.Name:lower():match(MELEE_PAT) then return t end
-	end
-	return nil
-end
-
-local function equipGun()
-	local ch = LP.Character
-	local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-	local bp = LP:FindFirstChildOfClass("Backpack")
-	if not hum or not bp then return false end
-	for _, t in ipairs(bp:GetChildren()) do
-		if t:IsA("Tool") and t.Name:lower():match(GUN_PAT) then
-			pcall(function() hum:EquipTool(t) end)
-			return true
-		end
-	end
-	return false
-end
-
-local function isEnemy(plr)
-	if plr == LP then return false end
-	if cfg.onlyInMatch and LP.Team == nil then return false end
-	if not getRoot(plr) then return false end
-	if cfg.onlyEnemies then
-		local myTeam = LP.Team
-		if myTeam and plr.Team then return plr.Team ~= myTeam end
-		if myTeam and not plr.Team then return false end
-	end
-	return true
 end
 
 -- ===== ESP =====
@@ -90,22 +37,26 @@ local function removeEsp(plr)
 	espObj[plr] = nil
 end
 
+local function clearEspAll()
+	for plr in pairs(espObj) do removeEsp(plr) end
+end
+
 local function makeEsp(plr, root)
 	local objs = {}
 
 	local box = Instance.new("BoxHandleAdornment")
-	box.Size = Vector3.new(3, 5.6, 3)
+	box.Size = Vector3.new(3.2, 5.8, 3.2)
 	box.Adornee = root
 	box.AlwaysOnTop = true
 	box.ZIndex = 5
-	box.Color3 = Color3.fromRGB(255, 60, 60)
-	box.Transparency = 0.4
+	box.Color3 = Color3.fromRGB(255, 165, 40)
+	box.Transparency = 0.35
 	box.Parent = root
 	table.insert(objs, box)
 
 	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.fromOffset(170, 40)
-	bb.StudsOffset = Vector3.new(0, 2.8, 0)
+	bb.Size = UDim2.fromOffset(180, 42)
+	bb.StudsOffset = Vector3.new(0, 2.9, 0)
 	bb.AlwaysOnTop = true
 	bb.Adornee = root
 	bb.Parent = root
@@ -127,225 +78,233 @@ end
 
 local function updateEsp()
 	for plr in pairs(espObj) do
-		if not plr.Parent or not isEnemy(plr) then removeEsp(plr) end
+		if not plr.Parent or plr == LP or not getRoot(plr) then removeEsp(plr) end
 	end
 	local myRoot = getRoot(LP)
 	if not myRoot then return end
 	for _, plr in ipairs(Players:GetPlayers()) do
-		if isEnemy(plr) then
+		if plr ~= LP and getRoot(plr) then
 			local root = getRoot(plr)
-			if root then
-				local d = math.floor((myRoot.Position - root.Position).Magnitude)
-				if d <= cfg.espRange then
-					local objs = espObj[plr]
-					if not objs or objs[1].Adornee ~= root then
-						removeEsp(plr)
-						objs = makeEsp(plr, root)
-					end
-					objs[1].Color3 = (d <= cfg.shootRange)
-						and Color3.fromRGB(255, 40, 40)
-						or Color3.fromRGB(255, 175, 40)
-					objs[2].Enabled = cfg.names or cfg.dist
-					local lbl = objs[2]:FindFirstChildOfClass("TextLabel")
-					if lbl then
-						lbl.Text = (cfg.names and plr.Name or "") .. (cfg.dist and ("   [" .. d .. "]") or "")
-					end
-				else
+			local d = math.floor((myRoot.Position - root.Position).Magnitude)
+			if d <= cfg.espRange then
+				local objs = espObj[plr]
+				if not objs or objs[1].Adornee ~= root then
 					removeEsp(plr)
+					objs = makeEsp(plr, root)
 				end
+				objs[1].Visible = cfg.boxes
+				objs[1].Color3 = (d <= 90) and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 175, 45)
+				objs[2].Enabled = cfg.names or cfg.dist
+				local lbl = objs[2]:FindFirstChildOfClass("TextLabel")
+				if lbl then
+					lbl.Text = (cfg.names and plr.Name or "") .. (cfg.dist and ("   [" .. d .. "]") or "")
+				end
+			else
+				removeEsp(plr)
 			end
 		end
 	end
 end
 
--- ===== REMOTES DE DISPARO =====
-local shootRemotes = {}
+-- ===== ACCIONES =====
+local function tpTo(plr)
+	local me = getRoot(LP)
+	local r = getRoot(plr)
+	if me and r then
+		me.CFrame = r.CFrame * CFrame.new(0, 3, 4)
+	end
+end
 
-local function scanRemotes()
-	table.clear(shootRemotes)
-	for _, d in ipairs(ReplicatedStorage:GetDescendants()) do
-		if d:IsA("RemoteEvent") then
-			local n = d.Name:lower()
-			if n:match("shoot") or n:match("fire") or n:match("gun") then
-				table.insert(shootRemotes, d)
-			end
+local function applySpeed()
+	local ch = LP.Character
+	local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.WalkSpeed = cfg.speed and cfg.speedVal or 16
+		hum.JumpPower = 55
+	end
+end
+
+local function applyNoclip()
+	local ch = LP.Character
+	if not ch then return end
+	for _, p in ipairs(ch:GetDescendants()) do
+		if p:IsA("BasePart") then
+			p.CanCollide = not cfg.noclip
 		end
 	end
-	return #shootRemotes
 end
 
--- ===== APUNTADO Y DISPARO =====
-local lastAim = nil
-local lastFire = 0
-
-local function aimAt(part)
-	if not part then return end
-	local vp = Camera.ViewportSize
-	if cfg.snap then
-		pcall(function()
-			Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, part.Position)
-		end)
-	end
-	local sp = Camera:WorldToViewportPoint(part.Position)
-	local px = math.clamp(sp.X, 2, vp.X - 3)
-	local py = math.clamp(sp.Y, 2, vp.Y - 3)
-	lastAim = Vector2.new(px, py)
-	pcall(function()
-		VirtualInputManager:SendMouseMoveEvent(px, py, false, game)
-	end)
-end
-
-local function shoot(part)
-	if not part or not part.Parent then return end
-	local gun = getGun()
-	if not gun then
-		if cfg.autoEquip then equipGun() end
-		DBG.last = "sin arma"
-		return
-	end
-
-	aimAt(part)
-	local p = lastAim
-	if not p then return end
-
-	local m = cfg.method
-	if m == "Virtual" or m == "Todo" then
-		pcall(function() VirtualInputManager:SendMouseButtonEvent(p.X, p.Y, 0, true, game, 0) end)
-		task.wait(cfg.tapMode and 0.05 or 0.012)
-		pcall(function() VirtualInputManager:SendMouseButtonEvent(p.X, p.Y, 0, false, game, 0) end)
-	end
-	if m == "Activate" or m == "Todo" then
-		pcall(function() gun:Activate() end)
-		if cfg.tapMode then
-			task.delay(0.05, function() pcall(function() gun:Deactivate() end) end)
-		end
-	end
-	if m == "Remote" or m == "Todo" then
-		for _, r in ipairs(shootRemotes) do
-			pcall(function() r:FireServer() end)
-		end
-	end
-
-	lastFire = os.clock()
-	DBG.last = m .. " en " .. gun.Name
-end
-
-local function nearestEnemy(maxD)
-	local myRoot = getRoot(LP)
-	if not myRoot then return nil end
-	local best, bestD = nil, maxD
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if isEnemy(plr) then
-			local r = getRoot(plr)
-			if r then
-				local d = (myRoot.Position - r.Position).Magnitude
-				if d < bestD then best, bestD = r, d end
-			end
-		end
-	end
-	return best, bestD
-end
-
-local function updateDebug()
-	if not DBG.label then return end
-	local gun = getGun()
-	DBG.label.Text = string.format("arma: %s  |  metodo: %s  |  remotos: %d  |  ultimo: %s",
-		gun and gun.Name or "ninguna", cfg.method, #shootRemotes, DBG.last)
-end
--- ===== INTERFAZ =====
-local function clearEspAll()
-	for plr in pairs(espObj) do removeEsp(plr) end
-end
+LP.CharacterAdded:Connect(function()
+	task.wait(1)
+	clearEspAll()
+	applySpeed()
+end)
 
 Players.PlayerRemoving:Connect(function(p) removeEsp(p) end)
-LP.CharacterAdded:Connect(function() task.wait(1) clearEspAll() end)
 
+RunService.Heartbeat:Connect(function()
+	if cfg.esp then pcall(updateEsp) end
+	if cfg.noclip then pcall(applyNoclip) end
+end)
+
+task.spawn(function()
+	while true do
+		if cfg.speed then pcall(applySpeed) end
+		task.wait(0.2)
+	end
+end)
+-- ===== INTERFAZ =====
 local gui = Instance.new("ScreenGui")
-gui.Name = "NexusDuelos"
+gui.Name = "NexusBrainrot"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 local ok = pcall(function() gui.Parent = CoreGui end)
 if not ok or not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
 
+local BANNER = "https://files.catbox.moe/dohhak.jpg"
+
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(318, 430)
-main.Position = UDim2.new(0, 14, 0.5, -215)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
+main.Size = UDim2.fromOffset(300, 402)
+main.Position = UDim2.new(0, 14, 0, 90)
+main.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
 main.BorderSizePixel = 0
 main.ClipsDescendants = true
 main.Active = true
 main.Parent = gui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
-local bg = Instance.new("ImageLabel")
-bg.Size = UDim2.fromScale(1, 1)
-bg.BackgroundTransparency = 1
-bg.Image = "https://files.catbox.moe/dohhak.jpg"
-bg.ImageTransparency = 0.72
-bg.ScaleType = Enum.ScaleType.Crop
-bg.Parent = main
-Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 12)
-
-local head = Instance.new("Frame")
-head.Size = UDim2.new(1, 0, 0, 44)
-head.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+local head = Instance.new("ImageLabel")
+head.Size = UDim2.new(1, 0, 0, 78)
+head.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
 head.BorderSizePixel = 0
+head.Image = BANNER
+head.ScaleType = Enum.ScaleType.Crop
 head.Parent = main
+Instance.new("UICorner", head).CornerRadius = UDim.new(0, 12)
+
+local shade = Instance.new("Frame")
+shade.Size = UDim2.fromScale(1, 1)
+shade.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shade.BackgroundTransparency = 0.35
+shade.BorderSizePixel = 0
+shade.Parent = head
+Instance.new("UICorner", shade).CornerRadius = UDim.new(0, 12)
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -50, 1, 0)
-title.Position = UDim2.fromOffset(12, 0)
+title.Size = UDim2.new(1, -60, 0, 18)
+title.Position = UDim2.fromOffset(12, 44)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBlack
-title.TextSize = 14
+title.TextSize = 15
 title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextColor3 = Color3.fromRGB(235, 235, 245)
-title.Text = "Nexus-HUB | Duelos  v9"
-title.Parent = head
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextStrokeTransparency = 0.2
+title.Text = "Nexus-HUB | Brainrot"
+title.Parent = main
 
 local sub = Instance.new("TextLabel")
-sub.Size = UDim2.fromOffset(120, 12)
-sub.Position = UDim2.new(1, -132, 0, 30)
+sub.Size = UDim2.new(1, -60, 0, 12)
+sub.Position = UDim2.fromOffset(12, 61)
 sub.BackgroundTransparency = 1
 sub.Font = Enum.Font.Gotham
 sub.TextSize = 9
-sub.TextXAlignment = Enum.TextXAlignment.Right
-sub.TextColor3 = Color3.fromRGB(120, 120, 135)
+sub.TextXAlignment = Enum.TextXAlignment.Left
+sub.TextColor3 = Color3.fromRGB(200, 200, 215)
+sub.TextStrokeTransparency = 0.4
 sub.Text = "By Navi"
-sub.Parent = head
+sub.Parent = main
 
-local close = Instance.new("TextButton")
-close.Size = UDim2.fromOffset(28, 28)
-close.Position = UDim2.new(1, -36, 0, 8)
-close.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
-close.Text = "X"
-close.Font = Enum.Font.GothamBold
-close.TextSize = 13
-close.TextColor3 = Color3.fromRGB(255, 255, 255)
-close.Parent = head
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 7)
-close.MouseButton1Click:Connect(function() gui.Enabled = false end)
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.fromOffset(26, 26)
+minBtn.Position = UDim2.new(1, -34, 0, 8)
+minBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+minBtn.BackgroundTransparency = 0.25
+minBtn.Text = "-"
+minBtn.Font = Enum.Font.GothamBlack
+minBtn.TextSize = 16
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.Parent = main
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 7)
 
-local dbg = Instance.new("TextLabel")
-dbg.Size = UDim2.new(1, -24, 0, 14)
-dbg.Position = UDim2.fromOffset(12, 48)
-dbg.BackgroundTransparency = 1
-dbg.Font = Enum.Font.Code
-dbg.TextSize = 10
-dbg.TextXAlignment = Enum.TextXAlignment.Left
-dbg.TextColor3 = Color3.fromRGB(120, 220, 140)
-dbg.Text = "cargando..."
-dbg.Parent = main
-DBG.label = dbg
+-- ===== ICONO MINIMIZADO =====
+local mini = Instance.new("ImageButton")
+mini.Size = UDim2.fromOffset(54, 54)
+mini.Position = UDim2.new(0, 14, 0, 90)
+mini.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+mini.BorderSizePixel = 0
+mini.Image = BANNER
+mini.ScaleType = Enum.ScaleType.Crop
+mini.Visible = false
+mini.Active = true
+mini.Parent = gui
+Instance.new("UICorner", mini).CornerRadius = UDim.new(0, 12)
 
+local miniTag = Instance.new("TextLabel")
+miniTag.Size = UDim2.new(1, 0, 0, 12)
+miniTag.Position = UDim2.new(0, 0, 1, -13)
+miniTag.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+miniTag.BackgroundTransparency = 0.35
+miniTag.BorderSizePixel = 0
+miniTag.Font = Enum.Font.GothamBold
+miniTag.TextSize = 9
+miniTag.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniTag.Text = "NEXUS"
+miniTag.Parent = mini
+
+local function setMinimized(v)
+	main.Visible = not v
+	mini.Visible = v
+end
+
+minBtn.MouseButton1Click:Connect(function()
+	mini.Position = main.Position
+	setMinimized(true)
+end)
+mini.MouseButton1Click:Connect(function()
+	main.Position = mini.Position
+	setMinimized(false)
+end)
+
+-- ===== ARRASTRAR =====
+local dragging, dragStart, startPos = false, nil, nil
+head.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = i.Position
+		startPos = main.Position
+	end
+end)
+mini.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = i.Position
+		startPos = mini.Position
+	end
+end)
+UserInputService.InputChanged:Connect(function(i)
+	if not dragging then return end
+	if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+		local delta = i.Position - dragStart
+		local pos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		main.Position = pos
+		mini.Position = pos
+	end
+end)
+UserInputService.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- ===== LISTA =====
 local list = Instance.new("ScrollingFrame")
-list.Size = UDim2.new(1, -16, 1, -70)
-list.Position = UDim2.fromOffset(8, 64)
+list.Size = UDim2.new(1, -16, 1, -88)
+list.Position = UDim2.fromOffset(8, 84)
 list.BackgroundTransparency = 1
 list.BorderSizePixel = 0
 list.ScrollBarThickness = 3
-list.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 105)
+list.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 110)
 list.CanvasSize = UDim2.new(0, 0, 0, 0)
 list.Parent = main
 
@@ -354,17 +313,17 @@ lay.Padding = UDim.new(0, 6)
 lay.SortOrder = Enum.SortOrder.LayoutOrder
 lay.Parent = list
 lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	list.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
+	list.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 8)
 end)
 
 local function mkSection(text)
 	local f = Instance.new("TextLabel")
-	f.Size = UDim2.new(1, -16, 0, 20)
+	f.Size = UDim2.new(1, -16, 0, 18)
 	f.BackgroundTransparency = 1
 	f.Font = Enum.Font.GothamBold
-	f.TextSize = 11
+	f.TextSize = 10
 	f.TextXAlignment = Enum.TextXAlignment.Left
-	f.TextColor3 = Color3.fromRGB(150, 150, 170)
+	f.TextColor3 = Color3.fromRGB(145, 145, 168)
 	f.Text = text
 	f.Parent = list
 end
@@ -411,6 +370,8 @@ local function mkToggle(text, key)
 	row.MouseButton1Click:Connect(function()
 		cfg[key] = not cfg[key]
 		paint()
+		if key == "esp" and not cfg[key] then clearEspAll() end
+		if key == "speed" or key == "noclip" then applySpeed(); applyNoclip() end
 	end)
 	return row
 end
@@ -461,6 +422,7 @@ local function mkSlider(text, key, min, max)
 		cfg[key] = v
 		fill.Size = UDim2.fromScale(rel, 1)
 		lbl.Text = text .. ": " .. v
+		if key == "speedVal" then applySpeed() end
 	end
 
 	drag.InputBegan:Connect(function(i)
@@ -478,8 +440,8 @@ end
 
 local function mkButton(text, cb)
 	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(1, -16, 0, 34)
-	b.BackgroundColor3 = Color3.fromRGB(48, 40, 92)
+	b.Size = UDim2.new(1, -16, 0, 32)
+	b.BackgroundColor3 = Color3.fromRGB(46, 40, 90)
 	b.BorderSizePixel = 0
 	b.Font = Enum.Font.GothamBold
 	b.TextSize = 12
@@ -491,84 +453,100 @@ local function mkButton(text, cb)
 	return b
 end
 
--- ===== CONTROLES =====
+mkSection("MOVIMIENTO")
+mkToggle("Speed (correr rapido)", "speed")
+mkSlider("Velocidad", "speedVal", 20, 250)
+mkToggle("Atravesar casas", "noclip")
+mkButton("Volver a 16 (normal)", function()
+	cfg.speed = false
+	cfg.speedVal = 16
+	applySpeed()
+end)
+
 mkSection("ESP")
 mkToggle("ESP activo", "esp")
-mkToggle("Solo enemigos", "onlyEnemies")
-mkToggle("Solo en partida", "onlyInMatch")
-mkToggle("Cajas", "box")
+mkToggle("Cajas", "boxes")
 mkToggle("Nombres", "names")
 mkToggle("Distancia", "dist")
-mkSlider("Rango ESP", "espRange", 20, 800)
+mkSlider("Rango ESP", "espRange", 50, 2000)
 
-mkSection("DISPARO")
-mkToggle("Auto Shot", "autoShot")
-mkToggle("Auto equipar arma", "autoEquip")
-mkToggle("Tap (soltar gatillo)", "tapMode")
-mkToggle("Girar camara al objetivo", "snap")
-mkSlider("Rango de disparo", "shootRange", 10, 400)
-mkSlider("Cadencia (ms)", "fireRate", 60, 600)
+mkSection("JUGADORES")
 
-local methodBtn
-methodBtn = mkButton("Metodo: " .. cfg.method, function()
-	local order = { "Virtual", "Activate", "Remote", "Todo" }
-	local i = table.find(order, cfg.method) or 1
-	cfg.method = order[(i % #order) + 1]
-	methodBtn.Text = "Metodo: " .. cfg.method
+local plrBox = Instance.new("Frame")
+plrBox.Size = UDim2.new(1, -16, 0, 140)
+plrBox.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+plrBox.BorderSizePixel = 0
+plrBox.Parent = list
+Instance.new("UICorner", plrBox).CornerRadius = UDim.new(0, 8)
+
+local plrScroll = Instance.new("ScrollingFrame")
+plrScroll.Size = UDim2.new(1, -8, 1, -8)
+plrScroll.Position = UDim2.fromOffset(4, 4)
+plrScroll.BackgroundTransparency = 1
+plrScroll.BorderSizePixel = 0
+plrScroll.ScrollBarThickness = 3
+plrScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+plrScroll.Parent = plrBox
+
+local plrLay = Instance.new("UIListLayout")
+plrLay.Padding = UDim.new(0, 4)
+plrLay.Parent = plrScroll
+plrLay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	plrScroll.CanvasSize = UDim2.new(0, 0, 0, plrLay.AbsoluteContentSize.Y + 6)
 end)
 
-mkButton("PROBAR TIRO (enemigo cercano)", function()
-	local target = nearestEnemy(cfg.shootRange + 60)
-	if target then
-		shoot(target)
-	else
-		DBG.last = "sin enemigo cerca"
+local function refreshPlayers()
+	for _, c in ipairs(plrScroll:GetChildren()) do
+		if c:IsA("TextButton") or c:IsA("TextLabel") then c:Destroy() end
 	end
-end)
-
-mkSection("EXTRA")
-mkButton("Reescanear remotos", function()
-	local n = scanRemotes()
-	DBG.last = "remotos: " .. n
-end)
-
-mkButton("Kill All (tiro a todos)", function()
 	for _, plr in ipairs(Players:GetPlayers()) do
-		if isEnemy(plr) then
-			local r = getRoot(plr)
-			if r then
-				local myRoot = getRoot(LP)
-				if myRoot and (myRoot.Position - r.Position).Magnitude <= cfg.killRange then
-					shoot(r)
-					task.wait(0.12)
-				end
-			end
+		if plr ~= LP then
+			local row = Instance.new("TextButton")
+			row.Size = UDim2.new(1, -4, 0, 26)
+			row.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+			row.BorderSizePixel = 0
+			row.Text = ""
+			row.AutoButtonColor = false
+			row.Parent = plrScroll
+			Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+
+			local n = Instance.new("TextLabel")
+			n.Size = UDim2.new(1, -50, 1, 0)
+			n.Position = UDim2.fromOffset(8, 0)
+			n.BackgroundTransparency = 1
+			n.Font = Enum.Font.GothamMedium
+			n.TextSize = 11
+			n.TextXAlignment = Enum.TextXAlignment.Left
+			n.TextTruncate = Enum.TextTruncate.AtEnd
+			n.TextColor3 = Color3.fromRGB(220, 220, 232)
+			n.Text = plr.Name
+			n.Parent = row
+
+			local tp = Instance.new("TextButton")
+			tp.Size = UDim2.fromOffset(38, 18)
+			tp.Position = UDim2.new(1, -44, 0.5, -9)
+			tp.BackgroundColor3 = Color3.fromRGB(58, 120, 220)
+			tp.BorderSizePixel = 0
+			tp.Font = Enum.Font.GothamBold
+			tp.TextSize = 10
+			tp.TextColor3 = Color3.fromRGB(255, 255, 255)
+			tp.Text = "TP"
+			tp.Parent = row
+			Instance.new("UICorner", tp).CornerRadius = UDim.new(0, 5)
+			tp.MouseButton1Click:Connect(function() tpTo(plr) end)
 		end
 	end
-end)
+end
 
-mkButton("Cerrar", function() gui.Enabled = false end)
-
--- ===== LOOPS =====
+refreshPlayers()
 task.spawn(function()
 	while gui.Parent do
-		pcall(updateDebug)
-		task.wait(0.25)
+		refreshPlayers()
+		task.wait(2)
 	end
 end)
 
-RunService.Heartbeat:Connect(function()
-	if cfg.esp then pcall(updateEsp) else
-		if next(espObj) then clearEspAll() end
-	end
-	if cfg.autoShot and LP.Team then
-		local now = os.clock()
-		if now - lastFire >= cfg.fireRate / 1000 then
-			local target = nearestEnemy(cfg.shootRange)
-			if target then shoot(target) end
-		end
-	end
+mkButton("Minimizar", function()
+	mini.Position = main.Position
+	setMinimized(true)
 end)
-
-scanRemotes()
-DBG.last = "listo"
