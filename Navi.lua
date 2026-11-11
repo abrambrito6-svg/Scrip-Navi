@@ -1,4 +1,4 @@
--- Navi v3 | MVS | filtro por ROL real - solo en partida - hitbox fisico+visual - autofire sin mouse
+-- Navi v4 | MVS | rol por inventario - partida por timer - dispara con la PISTOLA - panel minimizable
 local Players=game:GetService("Players")
 local RS=game:GetService("RunService")
 local WS=game:GetService("Workspace")
@@ -7,43 +7,83 @@ local CS=game:GetService("CollectionService")
 local LP=Players.LocalPlayer
 local Cam=WS.CurrentCamera
 
-local CFG={ESP=false,HBEsp=false,Auto=false,MaxDist=1200,HBSize=6,POV=120}
+local CFG={ESP=false,HBEsp=false,Auto=false,Melee=false,MaxDist=1200,HBSize=6,POV=120}
 local ESP={}
 local HBDraw={}
 local HBPart={}
 local cache={}
-local matchActive=false
-
-local ATTRS={"Role","Team","role","team","roleName"}
+local inRound=false
 
 local function roleKey(s)
-    local n=string.lower(s)
+    local n=string.lower(tostring(s))
     if n:find("murder") or n:find("asesin") then return "M" end
     if n:find("sheriff") or n:find("sherif") then return "S" end
     if n:find("innocent") or n:find("inocen") then return "I" end
 end
 
+local function isGun(n)
+    n=string.lower(n)
+    return n:find("gun") or n:find("pistol") or n:find("revolver") or n:find("sherif") or n:find("pistola")
+end
+local function isKnife(n)
+    n=string.lower(n)
+    return n:find("knife") or n:find("cuchill") or n:find("dagger")
+end
+
+local function scanTools(p)
+    local gun,knife=false,false
+    local function check(cont)
+        if not cont then return end
+        for _,o in ipairs(cont:GetChildren()) do
+            if o:IsA("Tool") then
+                if isGun(o.Name) then gun=true end
+                if isKnife(o.Name) then knife=true end
+            end
+        end
+    end
+    check(p.Character)
+    check(p:FindFirstChild("Backpack"))
+    if gun then return "S" end
+    if knife then return "M" end
+end
+
+local ATTRS={"Role","Team","role","team","RoleName","TeamName","Class","class"}
 local function roleOf(p)
     if p.Team and p.Team.Name~="" then
-        local k=roleKey(p.Team.Name)
-        if k then return k end
+        local k=roleKey(p.Team.Name) if k then return k end
     end
     for _,a in ipairs(ATTRS) do
         local v=p:GetAttribute(a)
         if type(v)~="string" and p.Character then v=p.Character:GetAttribute(a) end
         if type(v)=="string" then local k=roleKey(v) if k then return k end end
     end
+    for _,c in ipairs(p:GetChildren()) do
+        if c:IsA("StringValue") or c:IsA("IntValue") then
+            local k=roleKey(c.Name) or roleKey(c.Value)
+            if k then return k end
+        end
+    end
     local ch=p.Character
     if ch then
         for _,t in ipairs(CS:GetTags(ch)) do local k=roleKey(t) if k then return k end end
-        local tool=ch:FindFirstChildOfClass("Tool")
-        if tool then
-            local n=string.lower(tool.Name)
-            if n:find("knife") or n:find("cuchill") then return "M" end
-            if n:find("gun") or n:find("pistol") or n:find("revolver") or n:find("sherif") then return "S" end
+        for _,c in ipairs(ch:GetChildren()) do
+            if c:IsA("StringValue") then local k=roleKey(c.Value) if k then return k end end
         end
     end
-    return nil
+    return scanTools(p)
+end
+
+-- temporizador de ronda en pantalla => estamos en partida
+local function roundTimerOn()
+    local pg=LP:FindFirstChild("PlayerGui")
+    if not pg then return false end
+    for _,d in ipairs(pg:GetDescendants()) do
+        if d:IsA("TextLabel") and d.Visible then
+            local t=d.Text
+            if #t==5 and t:match("^%d%d:%d%d$") then return true end
+        end
+    end
+    return false
 end
 
 task.spawn(function()
@@ -53,8 +93,8 @@ task.spawn(function()
             cache[p]=roleOf(p)
             if p~=LP and cache[p] then any=true end
         end
-        matchActive=(cache[LP]~=nil) or any
-        task.wait(0.25)
+        inRound=roundTimerOn() and (cache[LP]~=nil or any)
+        task.wait(0.3)
     end
 end)
 
@@ -64,10 +104,10 @@ local function isEnemy(p)
     if not r then return false end
     local me=cache[LP]
     if me=="M" then return r~="M" end
-    return r=="M"
+    if me=="S" or me=="I" then return r=="M" end
+    return true
 end
 
--- ===== ESP caja =====
 local function makeESP(p)
     if ESP[p] then return end
     local d={Box=Drawing.new("Square"),Name=Drawing.new("Text"),Dist=Drawing.new("Text"),
@@ -82,7 +122,6 @@ local function makeESP(p)
     ESP[p]=d
 end
 
--- ===== Hitbox visual (cubo 3D) =====
 local EDGES={{1,2},{2,4},{4,3},{3,1},{5,6},{6,8},{8,7},{7,5},{1,5},{2,6},{3,7},{4,8}}
 local function makeHB(p)
     if HBDraw[p] then return end
@@ -111,32 +150,22 @@ local function cubePoints(cf,size)
     return pts
 end
 
--- ===== Hitbox fisico =====
 local function hbPart(p)
     local part=HBPart[p]
     if part and part.Parent then return part end
     part=Instance.new("Part")
-    part.Name="NaviHitbox"
-    part.Anchored=true
-    part.CanCollide=false
-    part.CanQuery=true
-    part.CanTouch=false
-    part.Transparency=0.82
-    part.Color=Color3.fromRGB(255,255,0)
-    part.Material=Enum.Material.ForceField
+    part.Name="NaviHitbox" part.Anchored=true part.CanCollide=false
+    part.CanQuery=true part.CanTouch=false part.Transparency=0.82
+    part.Color=Color3.fromRGB(255,255,0) part.Material=Enum.Material.ForceField
     part.Size=Vector3.new(CFG.HBSize,CFG.HBSize,CFG.HBSize)
     part.Parent=WS
     HBPart[p]=part
     return part
 end
+local function clearHB(p) if HBPart[p] then HBPart[p]:Destroy() HBPart[p]=nil end end
 
-local function clearHB(p)
-    if HBPart[p] then HBPart[p]:Destroy() HBPart[p]=nil end
-end
-
--- ===== Loop principal =====
 local function updateESP()
-    if not (matchActive and CFG.ESP) then
+    if not (inRound and CFG.ESP) then
         for _,d in pairs(ESP) do hide(d) end
         return
     end
@@ -158,7 +187,8 @@ local function updateESP()
                 d.Box.Size=Vector2.new(w,hh) d.Box.Position=Vector2.new(x,y) d.Box.Visible=true
                 d.Name.Position=Vector2.new(pos.X,y-34) d.Name.Text=p.Name d.Name.Visible=true
                 d.Role.Position=Vector2.new(pos.X,y-20)
-                d.Role.Text=(cache[p]=="M" and "MURDERER" or "SHERIFF") d.Role.Visible=true
+                d.Role.Text=(cache[p]=="M" and "MURDERER" or (cache[p]=="S" and "SHERIFF" or "?"))
+                d.Role.Visible=true
                 d.Dist.Position=Vector2.new(pos.X,y+hh+5) d.Dist.Text=math.floor(dist).."m" d.Dist.Visible=true
                 local hp=hum.Health/hum.MaxHealth
                 d.HPbg.Size=Vector2.new(w+4,5) d.HPbg.Position=Vector2.new(x-2,y-8) d.HPbg.Visible=true
@@ -172,7 +202,7 @@ local function updateESP()
 end
 
 local function updateHB()
-    if not (matchActive and CFG.HBEsp) then
+    if not (inRound and CFG.HBEsp) then
         for _,t in pairs(HBDraw) do hide(t) end
         for p in pairs(HBPart) do clearHB(p) end
         return
@@ -208,8 +238,22 @@ local function updateHB()
     end
 end
 
--- ===== Autofire sin mouse =====
-local lastShot=0
+-- ===== armas =====
+local function findTool(pred)
+    local ch=LP.Character
+    if ch then
+        for _,o in ipairs(ch:GetChildren()) do
+            if o:IsA("Tool") and pred(o.Name) then return o,true end
+        end
+    end
+    local bp=LP:FindFirstChild("Backpack")
+    if bp then
+        for _,o in ipairs(bp:GetChildren()) do
+            if o:IsA("Tool") and pred(o.Name) then return o,false end
+        end
+    end
+end
+
 local function getTarget()
     local best,bd=nil,CFG.MaxDist
     for _,p in ipairs(Players:GetPlayers()) do
@@ -226,25 +270,38 @@ local function getTarget()
     return best
 end
 
+local lastShot=0
+local equipping=false
 local function autoFire()
-    if not (matchActive and CFG.Auto) then return end
+    if not (inRound and (CFG.Auto or CFG.Melee)) then return end
     if os.clock()<lastShot then return end
     local t=getTarget()
     if not t then return end
-    local from=Cam.CFrame.Position
-    Cam.CFrame=Cam.CFrame:Lerp(CFrame.new(from,t.Position),0.45)
-    local tool=LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-    if tool then
-        pcall(function() tool:Activate() end)
-        lastShot=os.clock()+0.14
-    else
-        lastShot=os.clock()+0.1
+    local ch=LP.Character
+    local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    Cam.CFrame=Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position,t.Position),0.45)
+    local tool,equipped
+    if CFG.Auto then
+        tool,equipped=findTool(isGun)
+        if not tool and CFG.Melee then tool,equipped=findTool(isKnife) end
+    elseif CFG.Melee then
+        tool,equipped=findTool(isKnife)
     end
+    if not tool then lastShot=os.clock()+0.15 return end
+    if not equipped then
+        if equipping then return end
+        equipping=true
+        pcall(function() hum:EquipTool(tool) end)
+        task.delay(0.15,function() equipping=false end)
+        lastShot=os.clock()+0.25
+        return
+    end
+    pcall(function() tool:Activate() end)
+    lastShot=os.clock()+(CFG.Auto and 0.14 or 0.5)
 end
 
-for _,p in ipairs(Players:GetPlayers()) do
-    if p~=LP then makeESP(p) makeHB(p) end
-end
+for _,p in ipairs(Players:GetPlayers()) do if p~=LP then makeESP(p) makeHB(p) end end
 Players.PlayerAdded:Connect(function(p) if p~=LP then makeESP(p) makeHB(p) end end)
 Players.PlayerRemoving:Connect(function(p)
     if ESP[p] then for _,v in pairs(ESP[p]) do v:Remove() end ESP[p]=nil end
@@ -266,27 +323,41 @@ if Cam then Cam.FieldOfView=CFG.POV end
 
 -- ===== UI =====
 local gui=Instance.new("ScreenGui")
-gui.Name="NaviV3" gui.ResetOnSpawn=false gui.Parent=game:GetService("CoreGui")
+gui.Name="NaviV4" gui.ResetOnSpawn=false gui.Parent=game:GetService("CoreGui")
 
 local fr=Instance.new("Frame")
-fr.Size=UDim2.new(0,215,0,300) fr.Position=UDim2.new(0,18,0,90)
+fr.Size=UDim2.new(0,215,0,392) fr.Position=UDim2.new(0,18,0,90)
 fr.BackgroundColor3=Color3.fromRGB(18,18,22) fr.BorderSizePixel=0 fr.Active=true fr.Parent=gui
 Instance.new("UICorner",fr).CornerRadius=UDim.new(0,9)
 
 local ttl=Instance.new("TextLabel")
-ttl.Size=UDim2.new(1,0,0,30) ttl.BackgroundColor3=Color3.fromRGB(32,32,40)
-ttl.Text="Navi v3 | MVS" ttl.TextColor3=Color3.new(1,1,1)
+ttl.Size=UDim2.new(1,-58,0,30) ttl.BackgroundColor3=Color3.fromRGB(32,32,40)
+ttl.Text="Navi v4 | MVS" ttl.TextColor3=Color3.new(1,1,1)
 ttl.Font=Enum.Font.GothamBold ttl.TextSize=14 ttl.Parent=fr
 Instance.new("UICorner",ttl).CornerRadius=UDim.new(0,9)
 
+local minBtn=Instance.new("TextButton")
+minBtn.Size=UDim2.new(0,26,0,26) minBtn.Position=UDim2.new(1,-54,0,2)
+minBtn.BackgroundColor3=Color3.fromRGB(50,50,60) minBtn.Text="-" minBtn.TextColor3=Color3.new(1,1,1)
+minBtn.Font=Enum.Font.GothamBold minBtn.TextSize=16 minBtn.Parent=fr
+Instance.new("UICorner",minBtn).CornerRadius=UDim.new(0,6)
+
+local closeBtn=Instance.new("TextButton")
+closeBtn.Size=UDim2.new(0,26,0,26) closeBtn.Position=UDim2.new(1,-26,0,2)
+closeBtn.BackgroundColor3=Color3.fromRGB(60,45,45) closeBtn.Text="x" closeBtn.TextColor3=Color3.new(1,1,1)
+closeBtn.Font=Enum.Font.GothamBold closeBtn.TextSize=14 closeBtn.Parent=fr
+Instance.new("UICorner",closeBtn).CornerRadius=UDim.new(0,6)
+
 local st=Instance.new("TextLabel")
-st.Size=UDim2.new(1,-16,0,18) st.Position=UDim2.new(0,8,0,32)
-st.BackgroundTransparency=1 st.Text="Estado: lobby" st.TextColor3=Color3.fromRGB(150,150,160)
+st.Size=UDim2.new(1,-16,0,16) st.Position=UDim2.new(0,8,0,31)
+st.BackgroundTransparency=1 st.Text="Estado: lobby | Rol: ?" st.TextColor3=Color3.fromRGB(150,150,160)
 st.Font=Enum.Font.GothamBold st.TextSize=11 st.Parent=fr
 task.spawn(function()
     while true do
-        st.Text="Estado: "..(matchActive and "EN PARTIDA" or "lobby")
-        st.TextColor3=matchActive and Color3.fromRGB(0,220,120) or Color3.fromRGB(150,150,160)
+        local me=cache[LP]
+        local rn=me=="M" and "Murderer" or (me=="S" and "Sheriff" or (me=="I" and "Innocent" or "?"))
+        st.Text="Estado: "..(inRound and "EN PARTIDA" or "lobby").." | Rol: "..rn
+        st.TextColor3=inRound and Color3.fromRGB(0,220,120) or Color3.fromRGB(150,150,160)
         task.wait(0.3)
     end
 end)
@@ -304,31 +375,32 @@ local function toggle(txt,y,key)
     end)
 end
 
-toggle("ESP Enemigos",54,"ESP")
-toggle("Hitbox Visual",90,"HBEsp")
-toggle("Auto Disparar",126,"Auto")
+toggle("ESP Enemigos",51,"ESP")
+toggle("Hitbox Visual",87,"HBEsp")
+toggle("Auto Disparar (pistola)",123,"Auto")
+toggle("Auto Cuchillo",159,"Melee")
 
 local lb=Instance.new("TextLabel")
-lb.Size=UDim2.new(1,-16,0,18) lb.Position=UDim2.new(0,8,0,164)
+lb.Size=UDim2.new(1,-16,0,18) lb.Position=UDim2.new(0,8,0,196)
 lb.BackgroundTransparency=1 lb.Text="Hitbox: 6" lb.TextColor3=Color3.fromRGB(255,255,0)
 lb.Font=Enum.Font.GothamBold lb.TextSize=11 lb.Parent=fr
 
-local function stepBtn(txt,y,delta)
+local function stepBtn(txt,x,delta)
     local b=Instance.new("TextButton")
-    b.Size=UDim2.new(0,96,0,26) b.Position=UDim2.new(0,8+(delta>0 and 102 or 0),0,y)
+    b.Size=UDim2.new(0,96,0,26) b.Position=UDim2.new(0,x,0,216)
     b.BackgroundColor3=Color3.fromRGB(45,45,55) b.Text=txt
-    b.TextColor3=Color3.new(1,1,1) b.Font=Enum.Font.GothamBold b.TextSize=11 b.Parent=fr
+    b.TextColor3=Color3.new(1,1,1) b.Font=Enum.Font.GothamBold b.TextSize=12 b.Parent=fr
     Instance.new("UICorner",b).CornerRadius=UDim.new(0,6)
     b.MouseButton1Click:Connect(function()
         CFG.HBSize=math.clamp(CFG.HBSize+delta,1,40)
         lb.Text="Hitbox: "..CFG.HBSize
     end)
 end
-stepBtn("-",184,-1)
-stepBtn("+",184,1)
+stepBtn("-",8,-1)
+stepBtn("+",104,1)
 
 local pb=Instance.new("TextButton")
-pb.Size=UDim2.new(1,-16,0,26) pb.Position=UDim2.new(0,8,0,216)
+pb.Size=UDim2.new(1,-16,0,26) pb.Position=UDim2.new(0,8,0,248)
 pb.BackgroundColor3=Color3.fromRGB(45,45,55) pb.Text="POV: "..CFG.POV
 pb.TextColor3=Color3.new(1,1,1) pb.Font=Enum.Font.GothamBold pb.TextSize=11 pb.Parent=fr
 Instance.new("UICorner",pb).CornerRadius=UDim.new(0,6)
@@ -339,7 +411,7 @@ pb.MouseButton1Click:Connect(function()
 end)
 
 local ds=Instance.new("TextButton")
-ds.Size=UDim2.new(1,-16,0,26) ds.Position=UDim2.new(0,8,0,248)
+ds.Size=UDim2.new(1,-16,0,26) ds.Position=UDim2.new(0,8,0,280)
 ds.BackgroundColor3=Color3.fromRGB(45,45,55) ds.Text="Distancia max: "..CFG.MaxDist
 ds.TextColor3=Color3.new(1,1,1) ds.Font=Enum.Font.GothamBold ds.TextSize=11 ds.Parent=fr
 Instance.new("UICorner",ds).CornerRadius=UDim.new(0,6)
@@ -348,7 +420,39 @@ ds.MouseButton1Click:Connect(function()
     ds.Text="Distancia max: "..CFG.MaxDist
 end)
 
--- arrastrar
+local ref=Instance.new("TextButton")
+ref.Size=UDim2.new(1,-16,0,24) ref.Position=UDim2.new(0,8,0,312)
+ref.BackgroundColor3=Color3.fromRGB(45,45,55) ref.Text="Refrescar roles"
+ref.TextColor3=Color3.new(1,1,1) ref.Font=Enum.Font.GothamBold ref.TextSize=11 ref.Parent=fr
+Instance.new("UICorner",ref).CornerRadius=UDim.new(0,6)
+ref.MouseButton1Click:Connect(function()
+    for _,p in ipairs(Players:GetPlayers()) do cache[p]=roleOf(p) end
+end)
+
+local info=Instance.new("TextLabel")
+info.Size=UDim2.new(1,-16,0,40) info.Position=UDim2.new(0,8,0,342)
+info.BackgroundTransparency=1 info.Text="Rol detectado por inventario. Si sale '?' usa Refrescar roles."
+info.TextColor3=Color3.fromRGB(120,120,135) info.Font=Enum.Font.Gotham
+info.TextSize=10 info.TextWrapped=true info.TextXAlignment=Enum.TextXAlignment.Left
+info.Parent=fr
+
+local minimized=false
+minBtn.MouseButton1Click:Connect(function()
+    minimized=not minimized
+    fr.Size=UDim2.new(0,215,0,minimized and 32 or 392)
+    for _,c in ipairs(fr:GetChildren()) do
+        if c~=ttl and c~=minBtn and c~=closeBtn and c:IsA("GuiObject") then c.Visible=not minimized end
+    end
+    minBtn.Text=minimized and "+" or "-"
+end)
+closeBtn.MouseButton1Click:Connect(function()
+    CFG.ESP=false CFG.HBEsp=false CFG.Auto=false CFG.Melee=false
+    for _,d in pairs(ESP) do hide(d) end
+    for _,t in pairs(HBDraw) do hide(t) end
+    for p in pairs(HBPart) do clearHB(p) end
+    gui.Enabled=false
+end)
+
 local drag,dip,dsp
 ttl.InputBegan:Connect(function(i)
     if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
@@ -367,4 +471,4 @@ UIS.InputChanged:Connect(function(i)
     end
 end)
 
-print("[Navi v3] cargado - estado:", matchActive)
+print("[Navi v4] cargado")
