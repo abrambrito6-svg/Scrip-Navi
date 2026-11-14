@@ -1,328 +1,264 @@
 --[[
     Zenith -- Duelos | HUB -- By Navi
-    Murder Mystery 2
+    Versión estable
 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
-local Lighting = game:GetService("Lighting")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 
---// Configuración
+-- Config
 local Config = {
     ESP = {
-        Enabled = false,
-        Glow = false,
+        Glow = true,
         Names = true,
         Distance = true,
-        Skeleton = true,
-        Tracers = false,
-        DroppedGun = true
+        Tracers = false
     },
     Aimlock = {
         Enabled = false,
-        AutoShoot = false,
-        WallCheck = true,
-        TeamCheck = false,
-        FOV = 180,
-        Smoothness = 0.15
-    },
-    Combat = {
-        KillAura = false,
-        KillAuraRange = 25,
-        AutoStab = false
+        Smoothness = 0.18
     },
     Movement = {
         Fly = false,
         FlySpeed = 50,
-        Noclip = false,
         Speed = false,
-        SpeedValue = 25
-    },
-    AutoFarm = {
-        Enabled = false
+        SpeedValue = 22,
+        Noclip = false
     },
     Colors = {
-        Murderer = Color3.fromRGB(255, 40, 40),
-        Sheriff = Color3.fromRGB(40, 120, 255),
+        Murderer = Color3.fromRGB(255, 50, 50),
+        Sheriff = Color3.fromRGB(50, 130, 255),
         Innocent = Color3.fromRGB(255, 255, 255)
     }
 }
 
---// Variables
-local ESPObjects = {}
-local Connections = {}
-local IsMinimized = false
-local CurrentMurderer = nil
-local CurrentSheriff = nil
+local ESPFolder = Instance.new("Folder")
+ESPFolder.Name = "ZenithESP"
+ESPFolder.Parent = game.CoreGui
 
---// Utilidades
+-- Crear GUI
+local function CreateGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "ZenithHub"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local success = pcall(function()
+        ScreenGui.Parent = CoreGui
+    end)
+    if not success then
+        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+
+    local Main = Instance.new("Frame")
+    Main.Name = "Main"
+    Main.Size = UDim2.new(0, 420, 0, 320)
+    Main.Position = UDim2.new(0.5, -210, 0.5, -160)
+    Main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    Main.BorderSizePixel = 0
+    Main.Active = true
+    Main.Draggable = true
+    Main.Parent = ScreenGui
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Main
+
+    -- Título
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, -80, 0, 36)
+    Title.Position = UDim2.new(0, 15, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = "Zenith -- Duelos | HUB -- By Navi"
+    Title.TextColor3 = Color3.fromRGB(220, 220, 255)
+    Title.TextSize = 15
+    Title.Font = Enum.Font.GothamBold
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = Main
+
+    -- Botón Minimizar
+    local MinBtn = Instance.new("TextButton")
+    MinBtn.Size = UDim2.new(0, 30, 0, 30)
+    MinBtn.Position = UDim2.new(1, -70, 0, 3)
+    MinBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    MinBtn.Text = "-"
+    MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinBtn.TextSize = 18
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.Parent = Main
+
+    local MinCorner = Instance.new("UICorner")
+    MinCorner.CornerRadius = UDim.new(0, 6)
+    MinCorner.Parent = MinBtn
+
+    -- Botón Cerrar
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    CloseBtn.Position = UDim2.new(1, -35, 0, 3)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 45, 45)
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.TextSize = 14
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Parent = Main
+
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseBtn
+
+    -- Role Display
+    local RoleLabel = Instance.new("TextLabel")
+    RoleLabel.Name = "RoleLabel"
+    RoleLabel.Size = UDim2.new(1, -20, 0, 32)
+    RoleLabel.Position = UDim2.new(0, 10, 0, 42)
+    RoleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    RoleLabel.Text = "Murderer: ---  |  Sheriff: ---"
+    RoleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    RoleLabel.TextSize = 14
+    RoleLabel.Font = Enum.Font.Gotham
+    RoleLabel.Parent = Main
+
+    local RoleCorner = Instance.new("UICorner")
+    RoleCorner.CornerRadius = UDim.new(0, 6)
+    RoleCorner.Parent = RoleLabel
+
+    -- Contenedor de toggles
+    local Container = Instance.new("ScrollingFrame")
+    Container.Size = UDim2.new(1, -20, 1, -85)
+    Container.Position = UDim2.new(0, 10, 0, 80)
+    Container.BackgroundTransparency = 1
+    Container.BorderSizePixel = 0
+    Container.ScrollBarThickness = 3
+    Container.CanvasSize = UDim2.new(0, 0, 0, 420)
+    Container.Parent = Main
+
+    local List = Instance.new("UIListLayout")
+    List.Padding = UDim.new(0, 5)
+    List.Parent = Container
+
+    -- Función crear toggle
+    local function AddToggle(text, default, callback)
+        local Frame = Instance.new("Frame")
+        Frame.Size = UDim2.new(1, 0, 0, 32)
+        Frame.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+        Frame.Parent = Container
+
+        local FCorner = Instance.new("UICorner")
+        FCorner.CornerRadius = UDim.new(0, 6)
+        FCorner.Parent = Frame
+
+        local Label = Instance.new("TextLabel")
+        Label.Size = UDim2.new(1, -55, 1, 0)
+        Label.Position = UDim2.new(0, 12, 0, 0)
+        Label.BackgroundTransparency = 1
+        Label.Text = text
+        Label.TextColor3 = Color3.fromRGB(230, 230, 240)
+        Label.TextSize = 14
+        Label.Font = Enum.Font.Gotham
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        Label.Parent = Frame
+
+        local Btn = Instance.new("TextButton")
+        Btn.Size = UDim2.new(0, 40, 0, 20)
+        Btn.Position = UDim2.new(1, -48, 0.5, -10)
+        Btn.BackgroundColor3 = default and Color3.fromRGB(100, 60, 220) or Color3.fromRGB(55, 55, 65)
+        Btn.Text = ""
+        Btn.Parent = Frame
+
+        local BCorner = Instance.new("UICorner")
+        BCorner.CornerRadius = UDim.new(1, 0)
+        BCorner.Parent = Btn
+
+        local Circle = Instance.new("Frame")
+        Circle.Size = UDim2.new(0, 16, 0, 16)
+        Circle.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        Circle.Parent = Btn
+
+        local CCorner = Instance.new("UICorner")
+        CCorner.CornerRadius = UDim.new(1, 0)
+        CCorner.Parent = Circle
+
+        local enabled = default
+        Btn.MouseButton1Click:Connect(function()
+            enabled = not enabled
+            Btn.BackgroundColor3 = enabled and Color3.fromRGB(100, 60, 220) or Color3.fromRGB(55, 55, 65)
+            Circle:TweenPosition(enabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+            callback(enabled)
+        end)
+    end
+
+    -- Toggles
+    AddToggle("ESP Glow", true, function(v) Config.ESP.Glow = v end)
+    AddToggle("Ver Nombres", true, function(v) Config.ESP.Names = v end)
+    AddToggle("Ver Distancia", true, function(v) Config.ESP.Distance = v end)
+    AddToggle("Aimlock", false, function(v) Config.Aimlock.Enabled = v end)
+    AddToggle("Volar (Fly)", false, function(v) Config.Movement.Fly = v end)
+    AddToggle("Caminar Rápido", false, function(v) Config.Movement.Speed = v end)
+    AddToggle("Noclip", false, function(v) Config.Movement.Noclip = v end)
+
+    -- Minimizar
+    local MiniBtn = Instance.new("TextButton")
+    MiniBtn.Size = UDim2.new(0, 110, 0, 30)
+    MiniBtn.Position = UDim2.new(0, 15, 0.5, -15)
+    MiniBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    MiniBtn.Text = "Zenith | Abrir"
+    MiniBtn.TextColor3 = Color3.fromRGB(220, 220, 255)
+    MiniBtn.TextSize = 13
+    MiniBtn.Font = Enum.Font.GothamBold
+    MiniBtn.Visible = false
+    MiniBtn.Parent = ScreenGui
+
+    local MiniCorner = Instance.new("UICorner")
+    MiniCorner.CornerRadius = UDim.new(0, 8)
+    MiniCorner.Parent = MiniBtn
+
+    MinBtn.MouseButton1Click:Connect(function()
+        Main.Visible = false
+        MiniBtn.Visible = true
+    end)
+
+    MiniBtn.MouseButton1Click:Connect(function()
+        Main.Visible = true
+        MiniBtn.Visible = false
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        ESPFolder:Destroy()
+    end)
+
+    return ScreenGui, RoleLabel
+end
+
+local ScreenGui, RoleLabel = CreateGUI()
+
+-- Detectar rol
 local function GetRole(player)
-    if not player or not player.Character then return "Innocent" end
+    if not player.Character then return "Innocent" end
     local char = player.Character
-    if char:FindFirstChild("Knife") or char:FindFirstChild("Knife") then
+
+    if char:FindFirstChild("Knife") then
         return "Murderer"
     end
     if char:FindFirstChild("Gun") or char:FindFirstChild("Revolver") then
         return "Sheriff"
     end
-    -- Método alternativo (algunos servidores usan valores)
-    local role = player:FindFirstChild("Role") or player:FindFirstChild("role")
-    if role then
-        local val = tostring(role.Value):lower()
-        if val:find("murder") then return "Murderer" end
-        if val:find("sheriff") then return "Sheriff" end
-    end
     return "Innocent"
 end
 
-local function IsAlive(player)
-    return player and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0
-end
-
---// GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ZenithHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-pcall(function() ScreenGui.Parent = CoreGui end)
-if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
--- Main Frame
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Size = UDim2.new(0, 480, 0, 360)
-Main.Position = UDim2.new(0.5, -240, 0.5, -180)
-Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.Parent = ScreenGui
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = Main
-
--- Background Image
-local Background = Instance.new("ImageLabel")
-Background.Name = "Background"
-Background.Size = UDim2.new(1, 0, 1, 0)
-Background.BackgroundTransparency = 1
-Background.Image = "https://files.catbox.moe/cmrqdt.jpg"
-Background.ImageTransparency = 0.65
-Background.ScaleType = Enum.ScaleType.Crop
-Background.Parent = Main
-
-local BGCorner = Instance.new("UICorner")
-BGCorner.CornerRadius = UDim.new(0, 10)
-BGCorner.Parent = Background
-
--- Title Bar
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 36)
-TitleBar.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Main
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 10)
-TitleCorner.Parent = TitleBar
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -80, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Zenith -- Duelos | HUB -- By Navi"
-Title.TextColor3 = Color3.fromRGB(220, 220, 255)
-Title.TextSize = 15
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
-
--- Minimize Button
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 32, 0, 32)
-MinimizeBtn.Position = UDim2.new(1, -70, 0, 2)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-MinimizeBtn.Text = "–"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.TextSize = 20
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.Parent = TitleBar
-
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 6)
-MinCorner.Parent = MinimizeBtn
-
--- Close Button
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 32, 0, 32)
-CloseBtn.Position = UDim2.new(1, -35, 0, 2)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 14
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Parent = TitleBar
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
-
--- Content
-local Content = Instance.new("ScrollingFrame")
-Content.Size = UDim2.new(1, -20, 1, -50)
-Content.Position = UDim2.new(0, 10, 0, 42)
-Content.BackgroundTransparency = 1
-Content.BorderSizePixel = 0
-Content.ScrollBarThickness = 4
-Content.CanvasSize = UDim2.new(0, 0, 0, 680)
-Content.Parent = Main
-
-local UIList = Instance.new("UIListLayout")
-UIList.Padding = UDim.new(0, 6)
-UIList.Parent = Content
-
--- Role Display
-local RoleDisplay = Instance.new("TextLabel")
-RoleDisplay.Size = UDim2.new(1, 0, 0, 40)
-RoleDisplay.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-RoleDisplay.Text = "Murderer: ---  |  Sheriff: ---"
-RoleDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
-RoleDisplay.TextSize = 14
-RoleDisplay.Font = Enum.Font.Gotham
-RoleDisplay.Parent = Content
-
-local RoleCorner = Instance.new("UICorner")
-RoleCorner.CornerRadius = UDim.new(0, 6)
-RoleCorner.Parent = RoleDisplay
-
--- Función para crear toggles
-local function CreateToggle(name, default, callback)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 34)
-    Frame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-    Frame.Parent = Content
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = Frame
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -60, 1, 0)
-    Label.Position = UDim2.new(0, 12, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(230, 230, 240)
-    Label.TextSize = 14
-    Label.Font = Enum.Font.Gotham
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Frame
-
-    local Toggle = Instance.new("TextButton")
-    Toggle.Size = UDim2.new(0, 44, 0, 22)
-    Toggle.Position = UDim2.new(1, -52, 0.5, -11)
-    Toggle.BackgroundColor3 = default and Color3.fromRGB(90, 50, 200) or Color3.fromRGB(50, 50, 60)
-    Toggle.Text = ""
-    Toggle.Parent = Frame
-
-    local TCorner = Instance.new("UICorner")
-    TCorner.CornerRadius = UDim.new(1, 0)
-    TCorner.Parent = Toggle
-
-    local Circle = Instance.new("Frame")
-    Circle.Size = UDim2.new(0, 18, 0, 18)
-    Circle.Position = default and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
-    Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Circle.Parent = Toggle
-
-    local CCorner = Instance.new("UICorner")
-    CCorner.CornerRadius = UDim.new(1, 0)
-    CCorner.Parent = Circle
-
-    local state = default
-    Toggle.MouseButton1Click:Connect(function()
-        state = not state
-        Toggle.BackgroundColor3 = state and Color3.fromRGB(90, 50, 200) or Color3.fromRGB(50, 50, 60)
-        Circle:TweenPosition(state and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9), "Out", "Quad", 0.15, true)
-        callback(state)
-    end)
-
-    return Frame
-end
-
--- Crear Toggles
-CreateToggle("ESP Glow", false, function(v) Config.ESP.Glow = v end)
-CreateToggle("Ver Nombres", true, function(v) Config.ESP.Names = v end)
-CreateToggle("Ver Distancia", true, function(v) Config.ESP.Distance = v end)
-CreateToggle("ESP Esqueleto", true, function(v) Config.ESP.Skeleton = v end)
-CreateToggle("ESP Líneas", false, function(v) Config.ESP.Tracers = v end)
-CreateToggle("ESP Arma Tirada", true, function(v) Config.ESP.DroppedGun = v end)
-
-CreateToggle("Aimlock", false, function(v) Config.Aimlock.Enabled = v end)
-CreateToggle("Auto Shoot", false, function(v) Config.Aimlock.AutoShoot = v end)
-CreateToggle("Wall Check", true, function(v) Config.Aimlock.WallCheck = v end)
-CreateToggle("Kill Aura", false, function(v) Config.Combat.KillAura = v end)
-CreateToggle("Auto Stab", false, function(v) Config.Combat.AutoStab = v end)
-
-CreateToggle("Volar (Fly)", false, function(v) Config.Movement.Fly = v end)
-CreateToggle("Noclip", false, function(v) Config.Movement.Noclip = v end)
-CreateToggle("Caminar Rápido", false, function(v) Config.Movement.Speed = v end)
-CreateToggle("AutoFarm", false, function(v) Config.AutoFarm.Enabled = v end)
-
--- Minimizar
-local MiniButton = Instance.new("TextButton")
-MiniButton.Size = UDim2.new(0, 120, 0, 32)
-MiniButton.Position = UDim2.new(0, 20, 0.5, -16)
-MiniButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-MiniButton.Text = "Zenith | Abrir"
-MiniButton.TextColor3 = Color3.fromRGB(220, 220, 255)
-MiniButton.TextSize = 13
-MiniButton.Font = Enum.Font.GothamBold
-MiniButton.Visible = false
-MiniButton.Parent = ScreenGui
-
-local MiniCorner = Instance.new("UICorner")
-MiniCorner.CornerRadius = UDim.new(0, 8)
-MiniCorner.Parent = MiniButton
-
-MinimizeBtn.MouseButton1Click:Connect(function()
-    IsMinimized = true
-    Main.Visible = false
-    MiniButton.Visible = true
-end)
-
-MiniButton.MouseButton1Click:Connect(function()
-    IsMinimized = false
-    Main.Visible = true
-    MiniButton.Visible = false
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-    for _, conn in pairs(Connections) do
-        conn:Disconnect()
-    end
-end)
-
---// ESP System
+-- ESP
 local function ClearESP(player)
-    if ESPObjects[player] then
-        for _, obj in pairs(ESPObjects[player]) do
-            if typeof(obj) == "Instance" then
-                obj:Destroy()
-            elseif typeof(obj) == "table" and obj.Remove then
-                obj:Remove()
-            end
-        end
-        ESPObjects[player] = nil
+    local esp = ESPFolder:FindFirstChild(player.Name)
+    if esp then
+        esp:Destroy()
     end
 end
 
@@ -330,57 +266,57 @@ local function CreateESP(player)
     if player == LocalPlayer then return end
     ClearESP(player)
 
-    local objects = {}
+    local char = player.Character
+    if not char then return end
 
-    -- Highlight (Glow)
     local highlight = Instance.new("Highlight")
-    highlight.FillTransparency = 0.7
+    highlight.Name = player.Name
+    highlight.FillTransparency = 0.65
     highlight.OutlineTransparency = 0
-    highlight.Parent = player.Character or player
-    objects.Highlight = highlight
+    highlight.Parent = ESPFolder
+    highlight.Adornee = char
 
-    -- Name + Distance
     local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 200, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 3.2, 0)
+    billboard.Name = "Billboard"
+    billboard.Size = UDim2.new(0, 160, 0, 35)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.AlwaysOnTop = true
-    billboard.Parent = player.Character and player.Character:FindFirstChild("Head") or player.Character
+    billboard.Parent = char:FindFirstChild("Head") or char
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.Size = UDim2.new(1, 0, 0.55, 0)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = player.Name
     nameLabel.TextSize = 13
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextStrokeTransparency = 0.5
+    nameLabel.TextStrokeTransparency = 0.4
     nameLabel.Parent = billboard
 
     local distLabel = Instance.new("TextLabel")
-    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    distLabel.Size = UDim2.new(1, 0, 0.45, 0)
+    distLabel.Position = UDim2.new(0, 0, 0.55, 0)
     distLabel.BackgroundTransparency = 1
     distLabel.Text = ""
     distLabel.TextSize = 12
     distLabel.Font = Enum.Font.Gotham
-    distLabel.TextStrokeTransparency = 0.5
+    distLabel.TextStrokeTransparency = 0.4
     distLabel.Parent = billboard
 
-    objects.Billboard = billboard
-    objects.NameLabel = nameLabel
-    objects.DistLabel = distLabel
-
-    ESPObjects[player] = objects
+    return highlight, nameLabel, distLabel
 end
 
-local function UpdateESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player \~= LocalPlayer and IsAlive(player) then
-            if not ESPObjects[player] then
-                CreateESP(player)
-            end
+-- Loop principal
+local CurrentMurderer, CurrentSheriff = nil, nil
 
+RunService.RenderStepped:Connect(function()
+    CurrentMurderer = nil
+    CurrentSheriff = nil
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player \~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
             local role = GetRole(player)
             local color = Config.Colors.Innocent
+
             if role == "Murderer" then
                 color = Config.Colors.Murderer
                 CurrentMurderer = player
@@ -389,168 +325,36 @@ local function UpdateESP()
                 CurrentSheriff = player
             end
 
-            local objs = ESPObjects[player]
-            if objs.Highlight then
-                objs.Highlight.Enabled = Config.ESP.Glow
-                objs.Highlight.FillColor = color
-                objs.Highlight.OutlineColor = color
-                objs.Highlight.Adornee = player.Character
+            local highlight = ESPFolder:FindFirstChild(player.Name)
+            if not highlight then
+                CreateESP(player)
+                highlight = ESPFolder:FindFirstChild(player.Name)
             end
 
-            if objs.NameLabel then
-                objs.NameLabel.Visible = Config.ESP.Names
-                objs.NameLabel.TextColor3 = color
-                objs.NameLabel.Text = player.Name .. " [" .. role .. "]"
+            if highlight then
+                highlight.Enabled = Config.ESP.Glow
+                highlight.FillColor = color
+                highlight.OutlineColor = color
             end
 
-            if objs.DistLabel and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude)
-                objs.DistLabel.Visible = Config.ESP.Distance
-                objs.DistLabel.TextColor3 = color
-                objs.DistLabel.Text = dist .. " studs"
+            local billboard = player.Character and player.Character:FindFirstChild("Billboard")
+            if billboard then
+                local nameLabel = billboard:FindFirstChildOfClass("TextLabel")
+                if nameLabel then
+                    nameLabel.Visible = Config.ESP.Names
+                    nameLabel.TextColor3 = color
+                    nameLabel.Text = player.Name .. " [" .. role .. "]"
+                end
             end
         else
             ClearESP(player)
         end
     end
 
-    -- Actualizar display de roles
-    local murdName = CurrentMurderer and CurrentMurderer.Name or "---"
-    local sherName = CurrentSheriff and CurrentSheriff.Name or "---"
-    RoleDisplay.Text = "Murderer: " .. murdName .. "  |  Sheriff: " .. sherName
-    RoleDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
-end
-
---// Skeleton ESP (Drawing)
-local SkeletonDrawings = {}
-
-local function DrawSkeleton(player)
-    if not Config.ESP.Skeleton then return end
-    if not IsAlive(player) or player == LocalPlayer then return end
-
-    local char = player.Character
-    if not char then return end
-
-    local role = GetRole(player)
-    local color = Config.Colors.Innocent
-    if role == "Murderer" then color = Config.Colors.Murderer
-    elseif role == "Sheriff" then color = Config.Colors.Sheriff end
-
-    local parts = {
-        {"Head", "UpperTorso"},
-        {"UpperTorso", "LowerTorso"},
-        {"UpperTorso", "LeftUpperArm"},
-        {"LeftUpperArm", "LeftLowerArm"},
-        {"LeftLowerArm", "LeftHand"},
-        {"UpperTorso", "RightUpperArm"},
-        {"RightUpperArm", "RightLowerArm"},
-        {"RightLowerArm", "RightHand"},
-        {"LowerTorso", "LeftUpperLeg"},
-        {"LeftUpperLeg", "LeftLowerLeg"},
-        {"LeftLowerLeg", "LeftFoot"},
-        {"LowerTorso", "RightUpperLeg"},
-        {"RightUpperLeg", "RightLowerLeg"},
-        {"RightLowerLeg", "RightFoot"}
-    }
-
-    if not SkeletonDrawings[player] then
-        SkeletonDrawings[player] = {}
-    end
-
-    for i, pair in ipairs(parts) do
-        local p1 = char:FindFirstChild(pair[1])
-        local p2 = char:FindFirstChild(pair[2])
-        if p1 and p2 then
-            local pos1, onScreen1 = Camera:WorldToViewportPoint(p1.Position)
-            local pos2, onScreen2 = Camera:WorldToViewportPoint(p2.Position)
-
-            if not SkeletonDrawings[player][i] then
-                local line = Drawing.new("Line")
-                line.Thickness = 1.5
-                line.Transparency = 1
-                SkeletonDrawings[player][i] = line
-            end
-
-            local line = SkeletonDrawings[player][i]
-            if onScreen1 or onScreen2 then
-                line.From = Vector2.new(pos1.X, pos1.Y)
-                line.To = Vector2.new(pos2.X, pos2.Y)
-                line.Color = color
-                line.Visible = true
-            else
-                line.Visible = false
-            end
-        end
-    end
-end
-
-local function ClearSkeleton(player)
-    if SkeletonDrawings[player] then
-        for _, line in pairs(SkeletonDrawings[player]) do
-            line:Remove()
-        end
-        SkeletonDrawings[player] = nil
-    end
-end
-
---// Aimlock
-local function GetClosestPlayer()
-    local closest = nil
-    local shortest = Config.Aimlock.FOV
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player \~= LocalPlayer and IsAlive(player) then
-            local role = GetRole(player)
-            if role == "Murderer" or (role == "Sheriff" and not CurrentMurderer) then
-                local root = player.Character:FindFirstChild("HumanoidRootPart")
-                if root then
-                    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                    local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                    if onScreen and dist < shortest then
-                        if Config.Aimlock.WallCheck then
-                            local ray = Ray.new(Camera.CFrame.Position, (root.Position - Camera.CFrame.Position).Unit * 500)
-                            local hit = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, player.Character})
-                            if not hit then
-                                shortest = dist
-                                closest = player
-                            end
-                        else
-                            shortest = dist
-                            closest = player
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return closest
-end
-
---// Main Loop
-Connections[#Connections+1] = RunService.RenderStepped:Connect(function()
-    -- ESP
-    UpdateESP()
-
-    -- Skeleton
-    for _, player in pairs(Players:GetPlayers()) do
-        if Config.ESP.Skeleton then
-            DrawSkeleton(player)
-        else
-            ClearSkeleton(player)
-        end
-    end
-
-    -- Aimlock
-    if Config.Aimlock.Enabled then
-        local target = GetClosestPlayer()
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local root = target.Character.HumanoidRootPart
-            local goal = CFrame.new(Camera.CFrame.Position, root.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(goal, Config.Aimlock.Smoothness)
-        end
-    end
+    -- Actualizar texto de roles
+    local mName = CurrentMurderer and CurrentMurderer.Name or "---"
+    local sName = CurrentSheriff and CurrentSheriff.Name or "---"
+    RoleLabel.Text = "Murderer: " .. mName .. "   |   Sheriff: " .. sName
 
     -- Speed
     if Config.Movement.Speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -565,35 +369,48 @@ Connections[#Connections+1] = RunService.RenderStepped:Connect(function()
             end
         end
     end
-end)
 
--- Fly simple
-local FlyBV = nil
-Connections[#Connections+1] = RunService.Heartbeat:Connect(function()
-    if Config.Movement.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local root = LocalPlayer.Character.HumanoidRootPart
-        if not FlyBV then
-            FlyBV = Instance.new("BodyVelocity")
-            FlyBV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            FlyBV.Parent = root
-        end
-        local dir = Vector3.zero
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
-        FlyBV.Velocity = dir.Unit * Config.Movement.FlySpeed
-    else
-        if FlyBV then FlyBV:Destroy() FlyBV = nil end
+    -- Aimlock simple
+    if Config.Aimlock.Enabled and CurrentMurderer and CurrentMurderer.Character and CurrentMurderer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPos = CurrentMurderer.Character.HumanoidRootPart.Position
+        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), Config.Aimlock.Smoothness)
     end
 end)
 
--- Players leaving
-Players.PlayerRemoving:Connect(function(player)
-    ClearESP(player)
-    ClearSkeleton(player)
+-- Fly
+local BodyVel = nil
+RunService.Heartbeat:Connect(function()
+    if Config.Movement.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        if not BodyVel or BodyVel.Parent == nil then
+            BodyVel = Instance.new("BodyVelocity")
+            BodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            BodyVel.Parent = root
+        end
+
+        local move = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move = move + Vector3.new(0,-1,0) end
+
+        if move.Magnitude > 0 then
+            BodyVel.Velocity = move.Unit * Config.Movement.FlySpeed
+        else
+            BodyVel.Velocity = Vector3.zero
+        end
+    else
+        if BodyVel then
+            BodyVel:Destroy()
+            BodyVel = nil
+        end
+    end
 end)
 
-print("Zenith -- Duelos | HUB -- By Navi | Loaded successfully")
+Players.PlayerRemoving:Connect(function(player)
+    ClearESP(player)
+end)
+
+print("✅ Zenith -- Duelos | HUB -- By Navi cargado correctamente")
