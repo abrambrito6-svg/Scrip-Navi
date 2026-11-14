@@ -581,4 +581,19 @@ Connections[#Connections+1] = RunService.Heartbeat:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Cam
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
+        FlyBV.Velocity = dir.Unit * Config.Movement.FlySpeed
+    else
+        if FlyBV then FlyBV:Destroy() FlyBV = nil end
+    end
+end)
+
+-- Players leaving
+Players.PlayerRemoving:Connect(function(player)
+    ClearESP(player)
+    ClearSkeleton(player)
+end)
+
+print("Zenith -- Duelos | HUB -- By Navi | Loaded successfully")
