@@ -3,6 +3,8 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local VirtualUser = game:GetService("VirtualUser")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
@@ -690,36 +692,36 @@ local function setupPlayerEvents(p)
     updateEnemy()
 end
 
-local nexvyrTargetConnections = {}
-local nexvyrTargetMonitorActive = false
-local nexvyrTargetMonitorSession = 0
-local function nexvyrMonitorConnection(connection)
-    nexvyrTargetConnections[#nexvyrTargetConnections + 1] = connection
+local naviTargetConnections = {}
+local naviTargetMonitorActive = false
+local naviTargetMonitorSession = 0
+local function naviMonitorConnection(connection)
+    naviTargetConnections[#naviTargetConnections + 1] = connection
     return connection
 end
-local function nexvyrStartTargetMonitor()
-    if nexvyrTargetMonitorActive then return end
-    nexvyrTargetMonitorActive = true
-    nexvyrTargetMonitorSession += 1
-    local session = nexvyrTargetMonitorSession
+local function naviStartTargetMonitor()
+    if naviTargetMonitorActive then return end
+    naviTargetMonitorActive = true
+    naviTargetMonitorSession += 1
+    local session = naviTargetMonitorSession
     local function localChanged() updateMyTeam(); dmvsInfectionMarkDirty() end
     for _, name in ipairs({"Team", "TeamColor"}) do
-        nexvyrMonitorConnection(player:GetPropertyChangedSignal(name):Connect(localChanged))
+        naviMonitorConnection(player:GetPropertyChangedSignal(name):Connect(localChanged))
     end
     for _, name in ipairs({"Team", "team", "Game", "MatchId", "GameMode", "MatchMode", "Mode"}) do
-        nexvyrMonitorConnection(player:GetAttributeChangedSignal(name):Connect(localChanged))
+        naviMonitorConnection(player:GetAttributeChangedSignal(name):Connect(localChanged))
     end
-    nexvyrMonitorConnection(player.AttributeChanged:Connect(function(name)
+    naviMonitorConnection(player.AttributeChanged:Connect(function(name)
         if name == "InfectionPatientZero" or name == "InfectionInfected" or name == "IsInfected"
             or name == "Infected" or name == "IsZombie" or name == "Zombie" then dmvsInfectionMarkDirty() end
     end))
-    nexvyrMonitorConnection(player.CharacterAdded:Connect(dmvsInfectionMarkDirty))
-    nexvyrMonitorConnection(playerGui.DescendantAdded:Connect(function(instance)
+    naviMonitorConnection(player.CharacterAdded:Connect(dmvsInfectionMarkDirty))
+    naviMonitorConnection(playerGui.DescendantAdded:Connect(function(instance)
         if instance.Name == "IngameScore" or instance.Name == "TeamRed" or instance.Name == "TeamBlue" then
             dmvsInvalidateScoreboard(); dmvsInfectionMarkDirty()
         end
     end))
-    nexvyrMonitorConnection(playerGui.DescendantRemoving:Connect(function(instance)
+    naviMonitorConnection(playerGui.DescendantRemoving:Connect(function(instance)
         if instance == dmvsTeamResolverState.Scoreboard or instance.Name == "IngameScore"
             or instance.Name == "TeamRed" or instance.Name == "TeamBlue" then
             dmvsInvalidateScoreboard(); dmvsInfectionMarkDirty()
@@ -728,12 +730,12 @@ local function nexvyrStartTargetMonitor()
     for _, other in ipairs(Players:GetPlayers()) do
         if other ~= player then setupPlayerEvents(other) end
     end
-    nexvyrMonitorConnection(Players.PlayerAdded:Connect(function(other)
+    naviMonitorConnection(Players.PlayerAdded:Connect(function(other)
         dmvsInfectionState.LateJoiners[other] = true
         setupPlayerEvents(other)
         dmvsInfectionMarkDirty()
     end))
-    nexvyrMonitorConnection(Players.PlayerRemoving:Connect(function(other)
+    naviMonitorConnection(Players.PlayerRemoving:Connect(function(other)
         disconnectPlayerTeamEvents(other)
         for i = #dmvsInfectionState.Pending, 1, -1 do
             local entry = dmvsInfectionState.Pending[i]
@@ -756,7 +758,7 @@ local function nexvyrStartTargetMonitor()
                 if dmvsInfectionState.Active then dmvsClearInfectionRound(true) end
             end
         }
-        while nexvyrTargetMonitorActive and session == nexvyrTargetMonitorSession do
+        while naviTargetMonitorActive and session == naviTargetMonitorSession do
             local packages = ReplicatedStorage:FindFirstChild("Packages")
             local networking = packages and packages:FindFirstChild("Networking")
             local finished = true
@@ -764,7 +766,7 @@ local function nexvyrStartTargetMonitor()
                 if not registered[name] then
                     local remote = networking and networking:FindFirstChild(name)
                     if remote and remote:IsA("RemoteEvent") then
-                        nexvyrMonitorConnection(remote.OnClientEvent:Connect(callback))
+                        naviMonitorConnection(remote.OnClientEvent:Connect(callback))
                         registered[name] = true
                     else
                         finished = false
@@ -776,11 +778,11 @@ local function nexvyrStartTargetMonitor()
         end
     end)
 end
-local function nexvyrStopTargetMonitor()
-    if not nexvyrTargetMonitorActive then return end
-    nexvyrTargetMonitorActive = false
-    nexvyrTargetMonitorSession += 1
-    dmvsDisconnectConnectionList(nexvyrTargetConnections)
+local function naviStopTargetMonitor()
+    if not naviTargetMonitorActive then return end
+    naviTargetMonitorActive = false
+    naviTargetMonitorSession += 1
+    dmvsDisconnectConnectionList(naviTargetConnections)
     for other in pairs(dmvsTeamPlayerConnections) do disconnectPlayerTeamEvents(other) end
     dmvsDisconnectConnectionList(dmvsTeamResolverState.WatchConnections)
     dmvsTeamResolverState.Scoreboard = nil
@@ -789,8 +791,8 @@ local function nexvyrStopTargetMonitor()
     dmvsTeamResolverState.Dirty = true
     dmvsClearInfectionRound(false)
 end
-startTargetMonitor = nexvyrStartTargetMonitor
-stopTargetMonitor = nexvyrStopTargetMonitor
+startTargetMonitor = naviStartTargetMonitor
+stopTargetMonitor = naviStopTargetMonitor
 
 isEnemy = function(targetPlayer)
     if not dmvsIsInSameGame(targetPlayer) or not targetPlayer.Character then return false end
@@ -868,6 +870,7 @@ task.spawn(function()
             if not RemoteFarm then
                 Networking = ReplicatedStorage:FindFirstChild("Packages")
                 Networking = Networking and Networking:FindFirstChild("Networking")
+                RemoteFarm = Networking and Networking:FindFirstChild("RemoteFarm")
                 RemoteFarm = Networking and Networking:FindFirstChild("RE/Events/CollectEventSpawnable")
             end
             if RemoteFarm then RemoteFarm:FireServer() end
@@ -892,31 +895,32 @@ task.spawn(function()
     end
 end)
 
-local KILLALL_MOVE_SPEED               = 39.9
-local KILLALL_APPROACH_DISTANCE        = 2.5
-local KILLALL_APPROACH_TOLERANCE       = 0.35
-local KILLALL_SWING_INTERVAL           = 0.5
+local KILLALL_MOVE_SPEED               = 65
+local KILLALL_APPROACH_DISTANCE        = 2.2
+local KILLALL_APPROACH_TOLERANCE       = 0.5
+local KILLALL_SWING_INTERVAL           = 0.22
 local KILLALL_SAFE_GROUND_THRESHOLD    = 3
-local KILLALL_STICK_MAX_TIME           = 2.5
-local KILLALL_STICK_MAX_DISTANCE       = 20
+local KILLALL_STICK_MAX_TIME           = 3.5
+local KILLALL_STICK_MAX_DISTANCE       = 30
 local KILLALL_VOID_PROTECTION          = 15
-local KILLALL_HEALTH_STALL_TIME        = 1.5
-local KILLALL_TARGET_GRACE_TIME        = 1.2
+local KILLALL_HEALTH_STALL_TIME        = 0.9
+local KILLALL_TARGET_GRACE_TIME        = 0.6
 local KILLALL_PITCH_DEGREES            = 90
 local KILLALL_HEIGHT_OFFSET            = 1.9
 local KILLALL_HIDE_DEPTH               = 4
-local KILLALL_HIDE_DURATION            = 0.5
-local KILLALL_KNIFE_RANGE_Y            = 4.5
+local KILLALL_HIDE_DURATION            = 0.35
+local KILLALL_KNIFE_RANGE_Y            = 5.5
 local KILLALL_PREDICTION_TIME          = 0.08
 local KILLALL_JITTER_AMPLITUDE         = 0.8
-local KILLALL_JITTER_SWITCH_MIN        = 0.05
-local KILLALL_JITTER_SWITCH_MAX        = 0.12
-local KILLALL_JITTER_LERP_SPEED        = 25
+local KILLALL_JITTER_SWITCH_MIN        = 0.04
+local KILLALL_JITTER_SWITCH_MAX        = 0.1
+local KILLALL_JITTER_LERP_SPEED        = 30
 local KILLALL_UNDERGROUND_DEPTH        = 5
 local KILLALL_UNDERGROUND_TOLERANCE    = 1.5
-local KILLALL_TRIGGER_RADIUS           = 6.0
-local KILLALL_VALIDATION_TOLERANCE     = 1.0
-local KILLALL_VALIDATION_FRAMES        = 3
+local KILLALL_TRIGGER_RADIUS           = 7.0
+local KILLALL_VALIDATION_TOLERANCE     = 1.4
+local KILLALL_VALIDATION_FRAMES        = 2
+local KILLALL_REENGAGE_DELAY           = 0
 
 local RoxConnectionManager = {}
 RoxConnectionManager.__index = RoxConnectionManager
@@ -965,6 +969,9 @@ function RoxKillAll.new()
         lastSetCFrame = nil,
         validFrames = 0,
         killActivated = false,
+        reengageAt = 0,
+        lastKillTime = 0,
+        killStreak = 0,
     }, RoxKillAll)
 end
 
@@ -1059,12 +1066,15 @@ function RoxKillAll:GetClosestEnemy()
     self.lockedTargetPlayer = nil
     self.currentTarget = nil
     local best, bestDist, bestPlayer = nil, nil, nil
+    local myPos = myRoot.Position
     for _, other in ipairs(Players:GetPlayers()) do
         if other ~= player and esEnemigoValido(other) then
             local hum = self:GetHumanoid(other)
             local root = self:GetRoot(other)
             if root and hum and hum.Health > 0 then
-                local dist = (root.Position - myRoot.Position).Magnitude
+                local delta = root.Position - myPos
+                local dist = delta.Magnitude + math.abs(delta.Y) * 0.35
+                if hum.Health < hum.MaxHealth then dist = dist * 0.8 end
                 if not bestDist or dist < bestDist then
                     best, bestDist, bestPlayer = root, dist, other
                 end
@@ -1372,6 +1382,7 @@ function RoxKillAll:Update(dt)
             self.killActivated        = false
             self.validFrames          = 0
             self.lastSetCFrame        = nil
+            self.reengageAt           = os.clock() + KILLALL_REENGAGE_DELAY
             return
         end
     end
@@ -1494,6 +1505,7 @@ function RoxKillAll:Start()
     self.lastSetCFrame = nil
     self.validFrames = 0
     self.killActivated = false
+    self.reengageAt = 0
 
     local myRoot = self:GetRoot(player)
     if myRoot then
@@ -1573,15 +1585,279 @@ end
 
 local RoxKillAllInstance = RoxKillAll.new()
 
+local hasDrawing = false
+do
+    local ok = pcall(function()
+        local l = Drawing.new("Line")
+        l:Remove()
+    end)
+    hasDrawing = ok
+end
+
+local ESPData = {}
+local ESPHighlights = {}
+local WeaponESP = {}
+
+local BONES_R15 = {
+    Head = "Head", UpperTorso = "UpperTorso", LowerTorso = "LowerTorso",
+    LUA = "LeftUpperArm", LLA = "LeftLowerArm", LH = "LeftHand",
+    RUA = "RightUpperArm", RLA = "RightLowerArm", RH = "RightHand",
+    LUL = "LeftUpperLeg", LLL = "LeftLowerLeg", LF = "LeftFoot",
+    RUL = "RightUpperLeg", RLL = "RightLowerLeg", RF = "RightFoot",
+}
+local CONN_R15 = {
+    { "Head", "UpperTorso" }, { "UpperTorso", "LowerTorso" },
+    { "UpperTorso", "LUA" }, { "LUA", "LLA" }, { "LLA", "LH" },
+    { "UpperTorso", "RUA" }, { "RUA", "RLA" }, { "RLA", "RH" },
+    { "LowerTorso", "LUL" }, { "LUL", "LLL" }, { "LLL", "LF" },
+    { "LowerTorso", "RUL" }, { "RUL", "RLL" }, { "RLL", "RF" },
+}
+local CONN_R6 = {
+    { "Head", "Torso" }, { "Torso", "Left Arm" }, { "Torso", "Right Arm" },
+    { "Torso", "Left Leg" }, { "Torso", "Right Leg" },
+}
+
+local function clearESPFor(p)
+    local d = ESPData[p]
+    if d then
+        for _, l in ipairs(d.lines) do pcall(function() l:Remove() end) end
+        for _, t in ipairs(d.texts) do pcall(function() t:Remove() end) end
+        if d.tracer then pcall(function() d.tracer:Remove() end) end
+        if d.box then pcall(function() d.box:Remove() end) end
+        if d.billboard then pcall(function() d.billboard:Destroy() end) end
+        ESPData[p] = nil
+    end
+    local hl = ESPHighlights[p]
+    if hl then pcall(function() hl:Destroy() end); ESPHighlights[p] = nil end
+end
+
+local function buildESPFor(p)
+    if ESPData[p] or p == player then return end
+    local d = { lines = {}, texts = {} }
+    if hasDrawing then
+        for _ = 1, 20 do
+            local l = Drawing.new("Line")
+            l.Thickness = 1.6
+            l.Visible = false
+            table.insert(d.lines, l)
+        end
+        local nt = Drawing.new("Text")
+        nt.Size = 14; nt.Center = true; nt.Outline = true; nt.OutlineColor = Color3.new(0, 0, 0); nt.Visible = false
+        d.nameText = nt
+        table.insert(d.texts, nt)
+        local dt = Drawing.new("Text")
+        dt.Size = 12; dt.Center = true; dt.Outline = true; dt.OutlineColor = Color3.new(0, 0, 0); dt.Visible = false
+        d.distText = dt
+        table.insert(d.texts, dt)
+        local tr = Drawing.new("Line")
+        tr.Thickness = 1; tr.Transparency = 0.4; tr.Visible = false
+        d.tracer = tr
+        local bx = Drawing.new("Square")
+        bx.Thickness = 1; bx.Filled = false; bx.Transparency = 0.8; bx.Visible = false
+        d.box = bx
+    else
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "ZenithESP"
+        bb.Size = UDim2.new(0, 170, 0, 30)
+        bb.StudsOffset = Vector3.new(0, 2.7, 0)
+        bb.AlwaysOnTop = true
+        bb.Enabled = false
+        bb.Parent = p.Character
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.fromScale(1, 1)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 13
+        lbl.TextStrokeTransparency = 0
+        lbl.TextColor3 = Color3.new(1, 1, 1)
+        lbl.Text = p.Name
+        lbl.Parent = bb
+        d.billboard = bb
+        d.billboardLabel = lbl
+    end
+    ESPData[p] = d
+end
+
+local function updateESPFor(p)
+    local d = ESPData[p]
+    if not d then return end
+    local char = p.Character
+    local head = char and char:FindFirstChild("Head")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    local function hideAll()
+        for _, l in ipairs(d.lines) do l.Visible = false end
+        if d.nameText then d.nameText.Visible = false end
+        if d.distText then d.distText.Visible = false end
+        if d.tracer then d.tracer.Visible = false end
+        if d.box then d.box.Visible = false end
+        if d.billboard then d.billboard.Enabled = false end
+    end
+
+    if not (char and head and hum and hrp and hum.Health > 0) then
+        hideAll()
+        return
+    end
+
+    local enemy = isEnemy(p)
+    local color = enemy and getgenv().ZenithEnemyColor or getgenv().ZenithAllyColor
+    local cam = workspace.CurrentCamera
+    local headPos = head.Position
+    local dist = math.floor((cam.CFrame.Position - headPos).Magnitude)
+    local sp, onScreen = cam:WorldToViewportPoint(headPos + Vector3.new(0, 1.4, 0))
+
+    if d.nameText then
+        d.nameText.Visible = getgenv().ZenithESPNames and onScreen
+        if d.nameText.Visible then
+            d.nameText.Text = p.Name
+            d.nameText.Color = color
+            d.nameText.Position = Vector2.new(sp.X, sp.Y - 30)
+        end
+    end
+    if d.distText then
+        d.distText.Visible = getgenv().ZenithESPDist and onScreen
+        if d.distText.Visible then
+            d.distText.Text = tostring(dist) .. "m"
+            d.distText.Color = color
+            d.distText.Position = Vector2.new(sp.X, sp.Y - 14)
+        end
+    end
+    if d.billboard then
+        d.billboard.Enabled = getgenv().ZenithESPNames and onScreen
+        if d.billboardLabel then
+            d.billboardLabel.Text = p.Name
+            d.billboardLabel.TextColor3 = color
+        end
+    end
+    if d.tracer then
+        d.tracer.Visible = getgenv().ZenithESPLines and onScreen
+        if d.tracer.Visible then
+            d.tracer.From = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
+            d.tracer.To = Vector2.new(sp.X, sp.Y)
+            d.tracer.Color = color
+        end
+    end
+    if d.box and getgenv().ZenithESPBox then
+        local top, topOn = cam:WorldToViewportPoint(headPos + Vector3.new(0, 1.6, 0))
+        local bottom, botOn = cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 2.6, 0))
+        if topOn and botOn then
+            local h = math.abs(bottom.Y - top.Y)
+            local w = h * 0.55
+            d.box.Size = Vector2.new(w, h)
+            d.box.Position = Vector2.new(top.X - w / 2, top.Y)
+            d.box.Color = color
+            d.box.Visible = true
+        else
+            d.box.Visible = false
+        end
+    elseif d.box then
+        d.box.Visible = false
+    end
+
+    for _, l in ipairs(d.lines) do l.Visible = false end
+    if getgenv().ZenithESPSkeleton and hasDrawing then
+        local isR15 = hum.RigType == Enum.HumanoidRigType.R15
+        local conns = isR15 and CONN_R15 or CONN_R6
+        local idx = 0
+        for _, pair in ipairs(conns) do
+            local a, b
+            if isR15 then
+                a = char:FindFirstChild(BONES_R15[pair[1]])
+                b = char:FindFirstChild(BONES_R15[pair[2]])
+            else
+                a = char:FindFirstChild(pair[1])
+                b = char:FindFirstChild(pair[2])
+            end
+            if a and b then
+                local sa, oa = cam:WorldToViewportPoint(a.Position)
+                local sb, ob = cam:WorldToViewportPoint(b.Position)
+                if oa and ob then
+                    idx = idx + 1
+                    local line = d.lines[idx]
+                    if line then
+                        line.From = Vector2.new(sa.X, sa.Y)
+                        line.To = Vector2.new(sb.X, sb.Y)
+                        line.Color = color
+                        line.Visible = true
+                    end
+                end
+            end
+        end
+    end
+
+    if getgenv().ZenithESPHighlight then
+        local hl = ESPHighlights[p]
+        if not hl or hl.Adornee ~= char then
+            if hl then hl:Destroy() end
+            hl = Instance.new("Highlight")
+            hl.Name = "Zenith" .. p.Name
+            hl.FillTransparency = 0.55
+            hl.OutlineTransparency = 1
+            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            hl.Adornee = char
+            hl.Parent = getgenv().ZenithEspFolder
+            ESPHighlights[p] = hl
+        end
+        hl.FillColor = color
+        hl.OutlineColor = color
+    elseif ESPHighlights[p] then
+        ESPHighlights[p]:Destroy()
+        ESPHighlights[p] = nil
+    end
+end
+
+local function updateWeaponESP()
+    for _, d in pairs(WeaponESP) do pcall(function() d:Remove() end) end
+    WeaponESP = {}
+    if not (hasDrawing and getgenv().ZenithESPWeapons) then return end
+    local cam = workspace.CurrentCamera
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Tool") and (esCuchillo(obj) or esPistola(obj)) then
+            local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+            if handle then
+                local sp, on = cam:WorldToViewportPoint(handle.Position)
+                if on then
+                    local t = Drawing.new("Text")
+                    t.Size = 14
+                    t.Center = true
+                    t.Outline = true
+                    t.OutlineColor = Color3.new(0, 0, 0)
+                    t.Color = esCuchillo(obj) and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(90, 170, 255)
+                    t.Text = esCuchillo(obj) and "[ CUCHILLO ]" or "[ ARMA ]"
+                    t.Position = Vector2.new(sp.X, sp.Y)
+                    t.Visible = true
+                    table.insert(WeaponESP, t)
+                end
+            end
+        end
+    end
+end
+
 local function LoadHub()
     local oldGui = PlayerGui:FindFirstChild("Zenith")
     if oldGui then oldGui:Destroy() end
+
+    getgenv().ZenithESPNames = true
+    getgenv().ZenithESPDist = true
+    getgenv().ZenithESPSkeleton = false
+    getgenv().ZenithESPLines = false
+    getgenv().ZenithESPBox = false
+    getgenv().ZenithESPHighlight = false
+    getgenv().ZenithESPWeapons = false
+    getgenv().ZenithEnemyColor = Color3.fromRGB(255, 70, 70)
+    getgenv().ZenithAllyColor = Color3.fromRGB(90, 165, 255)
 
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "Zenith"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = PlayerGui
+
+    local EspFolder = Instance.new("Folder")
+    EspFolder.Name = "Zenith"
+    EspFolder.Parent = ScreenGui
+    getgenv().ZenithEspFolder = EspFolder
 
     local Theme = {
         Bg      = Color3.fromRGB(8, 12, 22),
@@ -1596,13 +1872,10 @@ local function LoadHub()
         Green   = Color3.fromRGB(110, 190, 120),
         Orange  = Color3.fromRGB(214, 140, 70),
         Red     = Color3.fromRGB(200, 70, 80),
-        Link    = Color3.fromRGB(120, 175, 255),
     }
     local FONT_TITLE = Enum.Font.Garamond
     local FONT       = Enum.Font.GothamMedium
     local FONT_BOLD  = Enum.Font.GothamBold
-
-    local DISCORD_URL = "https://discord.gg/mWBffStfJ"
 
     local function make(class, props, parent)
         local o = Instance.new(class)
@@ -1670,10 +1943,14 @@ local function LoadHub()
     local uiScale = make("UIScale", {Scale = baseScale}, MainFrame)
 
     local Backdrop = make("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = "https://files.catbox.moe/cmrqdt.jpg",
-        ScaleType = Enum.ScaleType.Crop, ImageTransparency = 0.35, ImageColor3 = Color3.fromRGB(150, 170, 225), ZIndex = 0,
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = "rbxassetid://112351058329601",
+        ScaleType = Enum.ScaleType.Crop, ImageTransparency = 0.25, ZIndex = 0,
     }, MainFrame)
     corner(Backdrop, 6)
+    make("Frame", {
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Theme.Bg, BackgroundTransparency = 0.45,
+        BorderSizePixel = 0, ZIndex = 0,
+    }, MainFrame)
 
     local Header = make("Frame", {
         Size = UDim2.new(1, 0, 0, 58), BackgroundColor3 = Theme.Bg, BackgroundTransparency = 0.35,
@@ -1933,6 +2210,35 @@ local function LoadHub()
         end)
     end
 
+    local function Button(parent, title, callback)
+        local row = Row(parent, 38)
+        searchIndex[#searchIndex + 1] = {title = title, tab = parent.Name}
+        local btn = make("TextButton", {
+            Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+        }, row)
+        local lbl = make("TextLabel", {
+            Size = UDim2.new(1, -24, 1, 0), Position = UDim2.new(0, 14, 0, 0), BackgroundTransparency = 1,
+            Text = title, Font = FONT_BOLD, TextSize = 12, TextColor3 = Theme.Accent,
+            TextXAlignment = Enum.TextXAlignment.Left,
+        }, row)
+        local chev = make("TextLabel", {
+            Size = UDim2.new(0, 20, 1, 0), Position = UDim2.new(1, -26, 0, 0), BackgroundTransparency = 1,
+            Text = "›", Font = FONT_BOLD, TextSize = 18, TextColor3 = Theme.AccentDim,
+        }, row)
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(lbl, TweenInfo.new(0.15), {TextColor3 = Theme.Text}):Play()
+            TweenService:Create(chev, TweenInfo.new(0.15), {TextColor3 = Theme.Accent}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(lbl, TweenInfo.new(0.15), {TextColor3 = Theme.Accent}):Play()
+            TweenService:Create(chev, TweenInfo.new(0.15), {TextColor3 = Theme.AccentDim}):Play()
+        end)
+        btn.MouseButton1Click:Connect(function()
+            pcall(callback)
+        end)
+        return btn
+    end
+
     local function Dropdown(parent, title, options, default, callback)
         local row = Row(parent, 42)
         searchIndex[#searchIndex + 1] = {title = title, tab = parent.Name}
@@ -2153,44 +2459,19 @@ local function LoadHub()
         end
     end)
 
-    Section(Home, "COMUNIDAD")
-    local discordRow = Row(Home, 66)
+    Section(Home, "ATAJOS")
+    local keyRow = Row(Home, 58)
     make("TextLabel", {
-        Size = UDim2.new(1, -150, 0, 18), Position = UDim2.new(0, 14, 0, 12), BackgroundTransparency = 1,
-        Text = "Únete al Discord: soporte y updates", Font = FONT, TextSize = 12, TextColor3 = Theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, discordRow)
+        Size = UDim2.new(1, -28, 0, 18), Position = UDim2.new(0, 14, 0, 8), BackgroundTransparency = 1,
+        Text = "Atajos de teclado", Font = FONT, TextSize = 12, TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    }, keyRow)
     make("TextLabel", {
-        Size = UDim2.new(1, -150, 0, 16), Position = UDim2.new(0, 14, 0, 34), BackgroundTransparency = 1,
-        Text = DISCORD_URL, Font = FONT, TextSize = 11, TextColor3 = Theme.Link,
-        TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-    }, discordRow)
-    local discordBtn = make("TextButton", {
-        Size = UDim2.new(0, 116, 0, 30), Position = UDim2.new(1, -130, 0.5, -15), BackgroundColor3 = Theme.Off,
-        Text = "COPIAR ENLACE", Font = FONT_BOLD, TextSize = 11, TextColor3 = Theme.Accent, AutoButtonColor = false,
-    }, discordRow)
-    corner(discordBtn, 4)
-    local discordStroke = stroke(discordBtn, Theme.AccentDim, 1, 0.1)
-    local copied = false
-    discordBtn.MouseEnter:Connect(function()
-        if not copied then TweenService:Create(discordStroke, TweenInfo.new(0.15), {Color = Theme.Accent}):Play() end
-    end)
-    discordBtn.MouseLeave:Connect(function()
-        if not copied then TweenService:Create(discordStroke, TweenInfo.new(0.15), {Color = Theme.AccentDim}):Play() end
-    end)
-    discordBtn.MouseButton1Click:Connect(function()
-        if copied then return end
-        pcall(function() setclipboard(DISCORD_URL) end)
-        copied = true
-        discordBtn.Text = "COPIADO"
-        discordBtn.TextColor3 = Theme.Green
-        discordStroke.Color = Theme.Green
-        task.wait(1.5)
-        copied = false
-        discordBtn.Text = "COPIAR ENLACE"
-        discordBtn.TextColor3 = Theme.Accent
-        discordStroke.Color = Theme.AccentDim
-    end)
+        Size = UDim2.new(1, -28, 0, 22), Position = UDim2.new(0, 14, 0, 28), BackgroundTransparency = 1,
+        Text = "R = Reaparecer  ·  T = TP al enemigo  ·  K = Kill All", Font = FONT, TextSize = 11,
+        TextColor3 = Theme.AccentDim, TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+    }, keyRow)
 
     local autoShootEnabled = false
     local autoShootAgresivoEnabled = false
@@ -2202,8 +2483,6 @@ local function LoadHub()
     local fovRadius = 120
     local equipGunEnabled = false
     local espEnabled = false
-    local espColor = Color3.fromRGB(5, 5, 5)
-    local espGlow = true
 
     getgenv().RoxHubTargetPart = nil
 
@@ -2296,62 +2575,34 @@ local function LoadHub()
     Slider(Aim, "TAMAÑO DEL FOV", 10, 200, 120, function(v) fovRadius = v end)
 
     local Vis = NewPanel("VISUALS")
-    local espFolder = Instance.new("Folder")
-    espFolder.Name = "Zenith"
-    espFolder.Parent = ScreenGui
-
     Section(Vis, "ESP")
-    Toggle(Vis, "ESP HIGHLIGHT", false, function(v) espEnabled = v; refreshMonitor() end)
-    ColorPicker(Vis, "COLOR DEL ESP", Color3.fromRGB(5, 5, 5), function(c) espColor = c end)
-    Toggle(Vis, "ACTIVAR ESP", true, function(v) espGlow = v end)
+    Toggle(Vis, "ESP HIGHLIGHT", false, function(v) getgenv().ZenithESPHighlight = v; refreshMonitor() end)
+    Toggle(Vis, "ESP ESQUELETO", false, function(v) getgenv().ZenithESPSkeleton = v; refreshMonitor() end)
+    Toggle(Vis, "ESP LÍNEAS", false, function(v) getgenv().ZenithESPLines = v; refreshMonitor() end)
+    Toggle(Vis, "ESP CAJA", false, function(v) getgenv().ZenithESPBox = v; refreshMonitor() end)
+    Toggle(Vis, "ESP NOMBRES", true, function(v) getgenv().ZenithESPNames = v end)
+    Toggle(Vis, "ESP DISTANCIA", true, function(v) getgenv().ZenithESPDist = v end)
+    Toggle(Vis, "ESP ARMA EN EL SUELO", false, function(v) getgenv().ZenithESPWeapons = v end)
+    ColorPicker(Vis, "COLOR ENEMIGO", Color3.fromRGB(255, 70, 70), function(c) getgenv().ZenithEnemyColor = c end)
+    ColorPicker(Vis, "COLOR ALIADO", Color3.fromRGB(90, 165, 255), function(c) getgenv().ZenithAllyColor = c end)
 
-    local activeESPs = {}
-    local function cleanAllESPs()
-        for p, hl in pairs(activeESPs) do
-            if hl then hl:Destroy() end
-            activeESPs[p] = nil
-        end
-    end
-    Players.PlayerRemoving:Connect(function(p)
-        if activeESPs[p] then
-            activeESPs[p]:Destroy()
-            activeESPs[p] = nil
-        end
-    end)
-    task.spawn(function()
-        while task.wait(0.2) do
-            if espEnabled and IsInMatchStrict() then
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= Player and isEnemy(p) then
-                        local char = p.Character
-                        if char and char:FindFirstChild("Head") then
-                            local hl = activeESPs[p]
-                            if not hl or hl.Adornee ~= char or hl.Parent ~= espFolder then
-                                if hl then hl:Destroy() end
-                                hl = Instance.new("Highlight")
-                                hl.Name = "Zenith" .. p.Name
-                                hl.FillTransparency = 0.5
-                                hl.OutlineTransparency = 1
-                                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                                hl.Adornee = char
-                                hl.Parent = espFolder
-                                activeESPs[p] = hl
-                            end
-                            hl.Enabled = espGlow
-                            hl.FillColor = espColor
-                            hl.OutlineColor = espColor
-                        elseif activeESPs[p] then
-                            activeESPs[p]:Destroy()
-                            activeESPs[p] = nil
-                        end
-                    elseif activeESPs[p] then
-                        activeESPs[p]:Destroy()
-                        activeESPs[p] = nil
-                    end
-                end
-            else
-                cleanAllESPs()
-            end
+    Section(Vis, "ILUMINACIÓN")
+    local savedLight = {}
+    Toggle(Vis, "FULLBRIGHT", false, function(v)
+        if v then
+            savedLight.Brightness = Lighting.Brightness
+            savedLight.ClockTime = Lighting.ClockTime
+            savedLight.GlobalShadows = Lighting.GlobalShadows
+            savedLight.FogEnd = Lighting.FogEnd
+            Lighting.Brightness = 3
+            Lighting.ClockTime = 14
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 1e6
+        else
+            Lighting.Brightness = savedLight.Brightness or 2
+            Lighting.ClockTime = savedLight.ClockTime or 14
+            Lighting.GlobalShadows = savedLight.GlobalShadows ~= false
+            Lighting.FogEnd = savedLight.FogEnd or 1e5
         end
     end)
 
@@ -2401,6 +2652,94 @@ local function LoadHub()
     Toggle(Move, "FIXED PLATFORM", false, function(v)
         PlatformActive = v
         if v then StartPlatforms() else StopPlatforms() end
+    end)
+
+    local walkSpeedEnabled = false
+    local walkSpeedValue = 45
+    local function applyWalkSpeed()
+        local char = Player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if walkSpeedEnabled then
+                hum.WalkSpeed = walkSpeedValue
+            else
+                hum.WalkSpeed = 16
+            end
+        end
+    end
+    Toggle(Move, "WALKSPEED", false, function(v)
+        walkSpeedEnabled = v
+        applyWalkSpeed()
+    end)
+    Slider(Move, "VELOCIDAD AL CAMINAR", 16, 250, 45, function(v)
+        walkSpeedValue = v
+        if walkSpeedEnabled then applyWalkSpeed() end
+    end)
+
+    local flyEnabled = false
+    local flySpeed = 90
+    local flyBV, flyBG
+    local function stopFly()
+        if flyBV then flyBV:Destroy(); flyBV = nil end
+        if flyBG then flyBG:Destroy(); flyBG = nil end
+        local char = Player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
+    end
+    local function startFly()
+        local char = Player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not (hrp and hum) then return end
+        stopFly()
+        flyBV = Instance.new("BodyVelocity")
+        flyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        flyBV.P = 1500
+        flyBV.Velocity = Vector3.zero
+        flyBV.Parent = hrp
+        flyBG = Instance.new("BodyGyro")
+        flyBG.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        flyBG.P = 2500
+        flyBG.CFrame = workspace.CurrentCamera.CFrame
+        flyBG.Parent = hrp
+        hum.PlatformStand = true
+    end
+    Toggle(Move, "FLY", false, function(v)
+        flyEnabled = v
+        if v then startFly() else stopFly() end
+    end)
+    Slider(Move, "VELOCIDAD DE VUELO", 20, 300, 90, function(v) flySpeed = v end)
+
+    local noclipEnabled = false
+    Toggle(Move, "NOCLIP", false, function(v)
+        noclipEnabled = v
+        if not v and Player.Character then
+            for _, part in ipairs(Player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end)
+
+    local infiniteJump = false
+    Toggle(Move, "SALTO INFINITO", false, function(v) infiniteJump = v end)
+
+    Button(Move, "TP AL ENEMIGO MÁS CERCANO", function()
+        local myChar = Player.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local best, bestDist
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= Player and esEnemigoValido(p) and p.Character then
+                local r = p.Character:FindFirstChild("HumanoidRootPart")
+                if r then
+                    local d = (r.Position - myRoot.Position).Magnitude
+                    if not bestDist or d < bestDist then best, bestDist = r, d end
+                end
+            end
+        end
+        if best then
+            myRoot.CFrame = CFrame.new(best.Position + Vector3.new(0, 1, 3))
+        end
     end)
 
     local Anim = NewPanel("ANIMATIONS")
@@ -2537,16 +2876,28 @@ local function LoadHub()
 
     local Kills = NewPanel("HIGH KILLS")
     Section(Kills, "KILL ALL")
-    Toggle(Kills, "KILL ALL BY NEXVYR HUB", false, function(on)
+    Toggle(Kills, "KILL ALL BY NAVI", false, function(on)
         if on then RoxKillAllInstance:Start() else RoxKillAllInstance:Stop() end
     end)
     Slider(Kills, "VIBRACIÓN", 0.0, 3.0, 0.8, function(v) KILLALL_JITTER_AMPLITUDE = v end)
-    Slider(Kills, "RADIO DE ACTIVACIÓN", 2.75, 9.0, 6.0, function(v) KILLALL_TRIGGER_RADIUS = v end)
+    Slider(Kills, "RADIO DE ACTIVACIÓN", 2.75, 12.0, 7.0, function(v) KILLALL_TRIGGER_RADIUS = v end)
+    Slider(Kills, "VELOCIDAD DE DESPLAZAMIENTO", 20.0, 160.0, 65.0, function(v) KILLALL_MOVE_SPEED = v end)
+    Slider(Kills, "VELOCIDAD DE ATAQUE", 0.05, 0.6, 0.22, function(v) KILLALL_SWING_INTERVAL = v end)
 
     local Settings = NewPanel("SETTINGS")
-    Section(Settings, "AJUSTES")
-    local noteRow = Row(Settings, 42)
-    RowLabel(noteRow, "Sin ajustes disponibles por ahora.", 28)
+    Section(Settings, "UTILIDADES")
+    local antiAfk = false
+    Toggle(Settings, "ANTI AFK", false, function(v) antiAfk = v end)
+    Button(Settings, "REJOIN AL SERVIDOR", function()
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, Player)
+        end)
+    end)
+    Button(Settings, "RESET (REAPARECER)", function()
+        local char = Player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.Health = 0 end
+    end)
 
     local Credits = NewPanel("CREDITS")
     Section(Credits, "CREDITOS")
@@ -2572,7 +2923,7 @@ local function LoadHub()
     creditLine(1, "Zenith -- Duelos | HUB", FONT_TITLE, 22, Theme.Text)
     line(creditCard, {Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Theme.AccentDim, LayoutOrder = 2}, "left")
     creditLine(3, '<font color="' .. accentHex .. '"><b>NAVI</b></font> -- Creador del hub y del estilo.', FONT, 13, Theme.Text)
-    creditLine(4, '<font color="' .. accentHex .. '"><b>NEXVYRHUB</b></font> -- Base del script y del Kill All.', FONT, 13, Theme.Text)
+    creditLine(4, '<font color="' .. accentHex .. '"><b>NAVI</b></font> -- Kill All, ESP, movimiento y mejoras.', FONT, 13, Theme.Text)
     creditLine(5, "By Navi", FONT_TITLE, 16, Theme.Dim, Enum.TextXAlignment.Center)
 
     local function tintIcon(parts, color, animate)
@@ -2863,6 +3214,9 @@ local function LoadHub()
             task.wait(0.2)
             ApplyAnims(animSelected)
         end
+        task.wait(0.6)
+        applyWalkSpeed()
+        if flyEnabled then startFly() end
     end)
 
     local oldNamecall
@@ -3055,6 +3409,102 @@ local function LoadHub()
             FOVCircle.Visible = false
         end
     end)
+
+    RunService.RenderStepped:Connect(function()
+        if espEnabled then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= Player and p.Character and p.Character:FindFirstChild("Head") then
+                    if not ESPData[p] then buildESPFor(p) end
+                    updateESPFor(p)
+                elseif ESPData[p] then
+                    updateESPFor(p)
+                end
+            end
+        else
+            for p in pairs(ESPData) do clearESPFor(p) end
+        end
+    end)
+
+    task.spawn(function()
+        while task.wait(0.2) do
+            updateWeaponESP()
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if flyEnabled and flyBV and flyBG then
+            local char = Player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                local dir = hum.MoveDirection
+                if dir.Magnitude > 0 then
+                    flyBV.Velocity = workspace.CurrentCamera.CFrame:VectorToWorldSpace(dir) * flySpeed
+                else
+                    flyBV.Velocity = Vector3.zero
+                end
+                flyBG.CFrame = workspace.CurrentCamera.CFrame
+            end
+        end
+    end)
+
+    RunService.Stepped:Connect(function()
+        if noclipEnabled and Player.Character then
+            for _, part in ipairs(Player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end)
+
+    UserInputService.JumpRequest:Connect(function()
+        if infiniteJump then
+            local char = Player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+
+    task.spawn(function()
+        while task.wait(60) do
+            if antiAfk then
+                pcall(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end)
+            end
+        end
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        if input.KeyCode == Enum.KeyCode.K then
+            local on = not RoxKillAllInstance.running
+            if on then RoxKillAllInstance:Start() else RoxKillAllInstance:Stop() end
+        elseif input.KeyCode == Enum.KeyCode.R then
+            local char = Player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = 0 end
+        elseif input.KeyCode == Enum.KeyCode.T then
+            local myChar = Player.Character
+            local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if myRoot then
+                local best, bestDist
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= Player and esEnemigoValido(p) and p.Character then
+                        local r = p.Character:FindFirstChild("HumanoidRootPart")
+                        if r then
+                            local d = (r.Position - myRoot.Position).Magnitude
+                            if not bestDist or d < bestDist then best, bestDist = r, d end
+                        end
+                    end
+                end
+                if best then myRoot.CFrame = CFrame.new(best.Position + Vector3.new(0, 1, 3)) end
+            end
+        end
+    end)
+
+    Toggle(Vis, "ACTIVAR ESP", false, function(v) espEnabled = v; refreshMonitor() end)
 end
 
 LoadHub()
