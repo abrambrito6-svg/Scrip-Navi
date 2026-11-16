@@ -868,7 +868,6 @@ task.spawn(function()
             if not RemoteFarm then
                 Networking = ReplicatedStorage:FindFirstChild("Packages")
                 Networking = Networking and Networking:FindFirstChild("Networking")
-                RemoteFarm = Networking and Networking:FindFirstChild("RemoteFarm")
                 RemoteFarm = Networking and Networking:FindFirstChild("RE/Events/CollectEventSpawnable")
             end
             if RemoteFarm then RemoteFarm:FireServer() end
@@ -1575,11 +1574,11 @@ end
 local RoxKillAllInstance = RoxKillAll.new()
 
 local function LoadHub()
-    local oldGui = PlayerGui:FindFirstChild("Zenith")
+    local oldGui = PlayerGui:FindFirstChild("01ROXHUB")
     if oldGui then oldGui:Destroy() end
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "Zenith"
+    ScreenGui.Name = "01ROXHUB"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = PlayerGui
@@ -1647,7 +1646,7 @@ local function LoadHub()
 
     local MainButton = make("ImageButton", {
         Name = "MainButton", Size = UDim2.new(0, 46, 0, 46), Position = UDim2.new(0.5, -23, 0, 12),
-        BackgroundColor3 = Theme.Bg, BorderSizePixel = 0, Image = "rbxassetid://7112351058329601",
+        BackgroundColor3 = Theme.Bg, BorderSizePixel = 0, Image = "rbxassetid://76111147434526",
         ScaleType = Enum.ScaleType.Fit, Active = true, Draggable = true,
     }, ScreenGui)
     corner(MainButton, 8)
@@ -1671,8 +1670,8 @@ local function LoadHub()
     local uiScale = make("UIScale", {Scale = baseScale}, MainFrame)
 
     local Backdrop = make("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = "rbxassetid://112351058329601",
-        ScaleType = Enum.ScaleType.Crop, ImageTransparency = 0.3, ImageColor3 = Color3.fromRGB(255, 255, 255), ZIndex = 0,
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = "rbxassetid://120887660443421",
+        ScaleType = Enum.ScaleType.Crop, ImageTransparency = 0.35, ImageColor3 = Color3.fromRGB(150, 170, 225), ZIndex = 0,
     }, MainFrame)
     corner(Backdrop, 6)
 
@@ -1682,16 +1681,16 @@ local function LoadHub()
     }, MainFrame)
     make("ImageLabel", {
         Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(0, 16, 0, 12), BackgroundTransparency = 1,
-        Image = "rbxassetid://112351058329601", ScaleType = Enum.ScaleType.Fit, ZIndex = 4,
+        Image = "rbxassetid://76111147434526", ScaleType = Enum.ScaleType.Fit, ZIndex = 4,
     }, Header)
     make("TextLabel", {
-        Size = UDim2.new(1, -120, 0, 26), Position = UDim2.new(0, 60, 0, 8), BackgroundTransparency = 1,
-        Text = "Zenith -- Duelos | HUB -- By Navi", Font = FONT_TITLE, TextSize = 17, TextColor3 = Theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4,
+        Size = UDim2.new(1, -120, 0, 28), Position = UDim2.new(0, 60, 0, 6), BackgroundTransparency = 1,
+        Text = "SHERIFF VS ASESINOS [DUELS]", Font = FONT_TITLE, TextSize = 23, TextTruncate = Enum.TextTruncate.AtEnd, TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4,
     }, Header)
     make("TextLabel", {
         Size = UDim2.new(1, -120, 0, 14), Position = UDim2.new(0, 60, 0, 34), BackgroundTransparency = 1,
-        Text = "F R E E   B E T A   ·   B Y   N A V I",
+        Text = "F R E E   B E T A   ·   B Y   0 1 R O X H U B ,   N E X V Y R H U B",
         Font = FONT, TextSize = 9, TextTruncate = Enum.TextTruncate.AtEnd, TextColor3 = Theme.AccentDim,
         TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4,
     }, Header)
@@ -2203,7 +2202,8 @@ local function LoadHub()
     local fovRadius = 120
     local equipGunEnabled = false
     local espEnabled = false
-    local espColor = Color3.fromRGB(160, 95, 255)
+    local espColor = Color3.fromRGB(5, 5, 5)
+    local espGlow = true
 
     getgenv().RoxHubTargetPart = nil
 
@@ -2295,128 +2295,88 @@ local function LoadHub()
     Toggle(Aim, "MOSTRAR FOV", false, function(v) fovVisiblePreference = v end)
     Slider(Aim, "TAMAÑO DEL FOV", 10, 200, 120, function(v) fovRadius = v end)
 
+ Section(Aim, "HITBOX INVISIBLE")
+
+    local hitboxEnabled = false
+    local CustomHitboxSize = 15
+    local customParts = {}
+
+    Toggle(Aim, "HITBOX INVISIBLE", false, function(s)
+        hitboxEnabled = s
+        if not s then
+            for player, part in pairs(customParts) do
+                if part and part.Parent then part:Destroy() end
+            end
+            table.clear(customParts)
+        end
+    end)
+
+    Slider(Aim, "TAMAÑO DEL HITBOX", 1, 100, 15, function(v)
+        CustomHitboxSize = v
+    end)
+
+    
+    task.spawn(function()
+        while task.wait(0.2) do
+            if not hitboxEnabled then continue end
+            
+            local enLobby = false
+            pcall(function() enLobby = estaEnLobby() end)
+            if enLobby then continue end
+
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Player and isEnemy(player) and player.Character then
+                    local character = player.Character
+                    local rootPart = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    
+                    if rootPart and humanoid and humanoid.Health > 0 then
+                        
+                        
+                        local p = character:FindFirstChild("01ROXHUB")
+                        
+                        if not p then
+                            p = Instance.new("Part")
+                            p.Name = "01ROXHUB"
+                            p.Size = Vector3.new(CustomHitboxSize, CustomHitboxSize, CustomHitboxSize)
+                            p.Transparency = 1
+                            p.CanCollide = false
+                            p.CanTouch = false
+                            p.CanQuery = true   
+                            p.Massless = true
+                            p.CFrame = rootPart.CFrame
+                            p.Parent = character
+                            
+                            local weld = Instance.new("WeldConstraint")
+                            weld.Name = "01ROXHUB"
+                            weld.Part0 = rootPart
+                            weld.Part1 = p
+                            weld.Parent = p
+                            
+                            customParts[player] = p
+                        else
+                            
+                            local targetSize = Vector3.new(CustomHitboxSize, CustomHitboxSize, CustomHitboxSize)
+                            if p.Size ~= targetSize then
+                                p.Size = targetSize
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+        
+
     local Vis = NewPanel("VISUALS")
     local espFolder = Instance.new("Folder")
-    espFolder.Name = "Zenith"
+    espFolder.Name = "01ROXHUB"
     espFolder.Parent = ScreenGui
-
-    local HAS_DRAWING = Drawing ~= nil and Drawing.new ~= nil
-    local R15 = {
-        {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-        {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-        {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-        {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-        {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-    }
-    local R6 = {
-        {"Head","Torso"},{"Torso","Left Arm"},{"Torso","Right Arm"},{"Torso","Left Leg"},{"Torso","Right Leg"},
-    }
-    local ESPCache = {}
-    local espSkeleton = false
-    local espBox = false
-
-    local function newDraw(class, props)
-        local d = Drawing.new(class)
-        for k, v in pairs(props or {}) do d[k] = v end
-        return d
-    end
-    local function getEntry(p)
-        local e = ESPCache[p]
-        if not e then
-            e = {Lines = {}}
-            if HAS_DRAWING then
-                e.Box = newDraw("Square", {Thickness = 1, Filled = false, Visible = false})
-            end
-            ESPCache[p] = e
-        end
-        return e
-    end
-    local function hideEntry(e)
-        if e.Box then e.Box.Visible = false end
-        for _, l in ipairs(e.Lines) do l.Visible = false end
-    end
-    local function removeEntry(p)
-        local e = ESPCache[p]
-        if not e then return end
-        pcall(function()
-            if e.Box then e.Box:Remove() end
-            for _, l in ipairs(e.Lines) do l:Remove() end
-        end)
-        ESPCache[p] = nil
-    end
-    local function updateSkeleton(p, inMatch)
-        local e = getEntry(p)
-        local char = p.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not (hum and hrp and hum.Health > 0 and inMatch and isEnemy(p)) then
-            hideEntry(e)
-            return
-        end
-        local cam = workspace.CurrentCamera
-        local pos, on = cam:WorldToViewportPoint(hrp.Position)
-        if not on then hideEntry(e) return end
-        local top = cam:WorldToViewportPoint(hrp.Position + Vector3.new(0, 2.8, 0))
-        local bot = cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.2, 0))
-        local h = math.abs(bot.Y - top.Y)
-        local w = h * 0.6
-        if espBox then
-            e.Box.Size = Vector2.new(w, h)
-            e.Box.Position = Vector2.new(pos.X - w / 2, top.Y)
-            e.Box.Color = espColor
-            e.Box.Visible = true
-        elseif e.Box then
-            e.Box.Visible = false
-        end
-        if espSkeleton then
-            local list = (hum.RigType == Enum.HumanoidRigType.R15) and R15 or R6
-            for i, pair in ipairs(list) do
-                local line = e.Lines[i]
-                if not line then
-                    line = newDraw("Line", {Thickness = 1, Visible = false})
-                    e.Lines[i] = line
-                end
-                local a, b = char:FindFirstChild(pair[1]), char:FindFirstChild(pair[2])
-                if a and b then
-                    local pa = cam:WorldToViewportPoint(a.Position)
-                    local pb = cam:WorldToViewportPoint(b.Position)
-                    if pa.Z > 0 and pb.Z > 0 then
-                        line.From = Vector2.new(pa.X, pa.Y)
-                        line.To = Vector2.new(pb.X, pb.Y)
-                        line.Color = espColor
-                        line.Visible = true
-                    else
-                        line.Visible = false
-                    end
-                else
-                    line.Visible = false
-                end
-            end
-            for i = #list + 1, #e.Lines do e.Lines[i].Visible = false end
-        else
-            for _, l in ipairs(e.Lines) do l.Visible = false end
-        end
-    end
-
-    Players.PlayerRemoving:Connect(removeEntry)
 
     Section(Vis, "ESP")
     Toggle(Vis, "ESP HIGHLIGHT", false, function(v) espEnabled = v; refreshMonitor() end)
-    Toggle(Vis, "ESP ESQUELETO", false, function(v) espSkeleton = v end)
-    Toggle(Vis, "ESP CAJA", false, function(v) espBox = v end)
-    ColorPicker(Vis, "COLOR DEL ESP", espColor, function(c) espColor = c end)
+    ColorPicker(Vis, "COLOR DEL ESP", Color3.fromRGB(5, 5, 5), function(c) espColor = c end)
     Toggle(Vis, "ACTIVAR ESP", true, function(v) espGlow = v end)
-
-    RunService.RenderStepped:Connect(function()
-        if not (espSkeleton or espBox) then
-            for _, e in pairs(ESPCache) do hideEntry(e) end
-            return
-        end
-        local inMatch = IsInMatchStrict()
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= Player then updateSkeleton(p, inMatch) end
-        end
-    end)
 
     local activeESPs = {}
     local function cleanAllESPs()
@@ -2430,7 +2390,6 @@ local function LoadHub()
             activeESPs[p]:Destroy()
             activeESPs[p] = nil
         end
-        removeEntry(p)
     end)
     task.spawn(function()
         while task.wait(0.2) do
@@ -2443,9 +2402,9 @@ local function LoadHub()
                             if not hl or hl.Adornee ~= char or hl.Parent ~= espFolder then
                                 if hl then hl:Destroy() end
                                 hl = Instance.new("Highlight")
-                                hl.Name = "Zenith" .. p.Name
-                                hl.FillTransparency = 0.5
-                                hl.OutlineTransparency = 0.2
+                                hl.Name = "01ROXHUB" .. p.Name
+                                hl.FillTransparency = 0.6
+                                hl.OutlineTransparency = 0.6
                                 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                                 hl.Adornee = char
                                 hl.Parent = espFolder
@@ -2465,87 +2424,6 @@ local function LoadHub()
                 end
             else
                 cleanAllESPs()
-            end
-        end
-    end)
-
-    Section(Vis, "HITBOX")
-    local hitboxEnabled = false
-    local hitboxSize = 3
-    local customParts = {}
-    Toggle(Vis, "HITBOX INVISIBLE", false, function(v)
-        hitboxEnabled = v
-        if not v then
-            for p, part in pairs(customParts) do
-                if part then part:Destroy() end
-                customParts[p] = nil
-            end
-        end
-    end)
-    Slider(Vis, "TAMAÑO DEL HITBOX", 1, 10, 3, function(v) hitboxSize = v end)
-
-    task.spawn(function()
-        while task.wait(0.3) do
-            if hitboxEnabled then
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= Player and isEnemy(p) then
-                        local char = p.Character
-                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                        if hrp then
-                            local part = customParts[p]
-                            if not part or part.Parent ~= char then
-                                if part then part:Destroy() end
-                                part = Instance.new("Part")
-                                part.Name = "Zenith"
-                                part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                                part.Transparency = 1
-                                part.CanCollide = false
-                                part.Massless = true
-                                part.CFrame = hrp.CFrame
-                                part.Parent = char
-                                local weld = Instance.new("WeldConstraint")
-                                weld.Part0 = part
-                                weld.Part1 = hrp
-                                weld.Parent = part
-                                customParts[p] = part
-                            else
-                                part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                            end
-                        end
-                    elseif customParts[p] then
-                        customParts[p]:Destroy()
-                        customParts[p] = nil
-                    end
-                end
-            end
-        end
-    end)
-
-    Section(Vis, "FAKE LAG")
-    local fakeLagEnabled = false
-    local frozenParts = {}
-    Toggle(Vis, "FAKE LAG", false, function(v)
-        fakeLagEnabled = v
-        if not v then
-            for p, part in pairs(frozenParts) do
-                if part and part.Parent then part.Anchored = false end
-                frozenParts[p] = nil
-            end
-        end
-    end)
-    task.spawn(function()
-        while task.wait(0.1) do
-            if fakeLagEnabled then
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= Player then
-                        local char = p.Character
-                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                        if hrp and not hrp.Anchored then
-                            hrp.Anchored = true
-                            frozenParts[p] = hrp
-                        end
-                    end
-                end
             end
         end
     end)
@@ -2596,26 +2474,89 @@ local function LoadHub()
     Toggle(Move, "FIXED PLATFORM", false, function(v)
         PlatformActive = v
         if v then StartPlatforms() else StopPlatforms() end
-    end)
+    end) 
 
-    local cframeSpeed = 0
-    local cframeEnabled = false
-    Toggle(Move, "CFRAME SPEED", false, function(v)
-        cframeEnabled = v
-    end)
-    Slider(Move, "VELOCIDAD CFRAME", 1, 50, 15, function(v)
-        cframeSpeed = v
-    end)
-    RunService.RenderStepped:Connect(function()
-        if not cframeEnabled then return end
-        local char = Player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hrp and hum and hum.MoveDirection.Magnitude > 0 then
-            hrp.CFrame = hrp.CFrame + hum.MoveDirection * (cframeSpeed * 0.15)
+    Section(Move, "FAKE LAG")
+    
+    local fakeLagEnabled = false
+    local frozenParts = {}
+
+    Toggle(Move, "FAKE LAG", false, function(s)
+        fakeLagEnabled = s
+        if not s then
+            for _, part in pairs(frozenParts) do
+                if part and part.Parent then
+                    part.Anchored = false
+                end
+            end
+            table.clear(frozenParts)
         end
     end)
 
+    task.spawn(function()
+        while task.wait(0.1) do
+            if fakeLagEnabled then
+                for _, other in ipairs(Players:GetPlayers()) do
+                    if other ~= Player and other.Character then
+                        local hrp = other.Character:FindFirstChild("HumanoidRootPart")
+                        local hum = other.Character:FindFirstChild("Humanoid")
+                        
+                        if hrp and hum and hum.Health > 0 then
+                            if not hrp.Anchored then
+                                hrp.Anchored = true
+                                frozenParts[other] = hrp
+                            end
+                        end
+                    end
+                end
+            else
+                if next(frozenParts) ~= nil then
+                    for player, part in pairs(frozenParts) do
+                        if part and part.Parent then
+                            part.Anchored = false
+                        end
+                        frozenParts[player] = nil
+                    end
+                end
+            end
+        end
+    end)
+            
+    Section(Move, "SPEED")
+    
+    local cframeSpeedEnabled = false
+    local cframeSpeedValue = 5
+    local cframeConnection = nil
+
+    Toggle(Move, "ACTIVAR CFRAME SPEED", false, function(s)
+        cframeSpeedEnabled = s
+        if s then
+            if cframeConnection then cframeConnection:Disconnect() end
+            
+            cframeConnection = RunService.RenderStepped:Connect(function()
+                if not cframeSpeedEnabled then return end
+                
+                local char = Player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChild("Humanoid")
+                
+                if hrp and hum and hum.Health > 0 and hum.MoveDirection.Magnitude > 0 then
+                    local moveDir = hum.MoveDirection
+                    hrp.CFrame = hrp.CFrame + (moveDir * cframeSpeedValue * 0.15)
+                end
+            end)
+        else
+            if cframeConnection then
+                cframeConnection:Disconnect()
+                cframeConnection = nil
+            end
+        end
+    end)
+
+    Slider(Move, "VELOCIDAD DEL SPEED", 1, 50, 5, function(v)
+        cframeSpeedValue = v
+    end)
+             
     local Anim = NewPanel("ANIMATIONS")
     local animSelected = {}
 
@@ -2750,7 +2691,7 @@ local function LoadHub()
 
     local Kills = NewPanel("HIGH KILLS")
     Section(Kills, "KILL ALL")
-    Toggle(Kills, "KILL ALL BY NAVI", false, function(on)
+    Toggle(Kills, "KILL ALL BY NEXVYR HUB", false, function(on)
         if on then RoxKillAllInstance:Start() else RoxKillAllInstance:Stop() end
     end)
     Slider(Kills, "VIBRACIÓN", 0.0, 3.0, 0.8, function(v) KILLALL_JITTER_AMPLITUDE = v end)
@@ -2760,6 +2701,33 @@ local function LoadHub()
     Section(Settings, "AJUSTES")
     local noteRow = Row(Settings, 42)
     RowLabel(noteRow, "Sin ajustes disponibles por ahora.", 28)
+
+    local Credits = NewPanel("CREDITS")
+    Section(Credits, "CREDITOS")
+    local creditCard = make("Frame", {
+        Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.Card,
+        BackgroundTransparency = 0.3, BorderSizePixel = 0, LayoutOrder = nextOrder(Credits),
+    }, Credits)
+    corner(creditCard, 4)
+    stroke(creditCard, Theme.Line, 1, 0.2)
+    make("UIPadding", {
+        PaddingTop = UDim.new(0, 16), PaddingBottom = UDim.new(0, 16),
+        PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18),
+    }, creditCard)
+    make("UIListLayout", {Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder}, creditCard)
+    local accentHex = "#" .. Theme.Accent:ToHex()
+    local function creditLine(order, text, font, size, color, align)
+        return make("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1,
+            Text = text, RichText = true, TextWrapped = true, Font = font, TextSize = size, TextColor3 = color,
+            TextXAlignment = align or Enum.TextXAlignment.Left, LayoutOrder = order,
+        }, creditCard)
+    end
+    creditLine(1, "Colaboración con NEXVYRHUB", FONT_TITLE, 22, Theme.Text)
+    line(creditCard, {Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Theme.AccentDim, LayoutOrder = 2}, "left")
+    creditLine(3, '<font color="' .. accentHex .. '"><b>01ROXHUB</b></font> -- Creador del script principal.', FONT, 13, Theme.Text)
+    creditLine(4, '<font color="' .. accentHex .. '"><b>NEXVYRHUB</b></font> -- Ayudante del script para mantener todo correcto.', FONT, 13, Theme.Text)
+    creditLine(5, "Colaboración", FONT_TITLE, 16, Theme.Dim, Enum.TextXAlignment.Center)
 
     local function tintIcon(parts, color, animate)
         local info = TweenInfo.new(animate and 0.15 or 0)
@@ -2835,6 +2803,13 @@ local function LoadHub()
                 local cy = 8 + math.sin(math.rad(a)) * 6
                 fill(cx - 1.75, cy - 1, 3.5, 2, a, 0)
             end
+        elseif name == "CREDITS" then
+            outline(5.5, 1.5, 5, 5, 3, 1.5)
+            local clip = make("Frame", {
+                Size = UDim2.new(0, 12, 0, 6), Position = UDim2.new(0, 2, 0, 9), BackgroundTransparency = 1,
+                ClipsDescendants = true, ZIndex = 4,
+            }, box)
+            outline(0, 0, 12, 12, 6, 1.5, clip)
         end
         return parts
     end
@@ -2898,7 +2873,7 @@ local function LoadHub()
         end)
     end
 
-    local tabOrder = {"HOME", "AIMBOT", "VISUALS", "MOVEMENT", "ANIMATIONS", "HIGH FARM", "HIGH KILLS", "SETTINGS"}
+    local tabOrder = {"HOME", "AIMBOT", "VISUALS", "MOVEMENT", "ANIMATIONS", "HIGH FARM", "HIGH KILLS", "SETTINGS", "CREDITS"}
     for i, name in ipairs(tabOrder) do NavItem(name, i) end
     Select("HOME")
 
@@ -3237,4 +3212,3 @@ local function LoadHub()
 end
 
 LoadHub()
-print("Zenith -- Duelos | HUB -- By Navi | Loaded")
