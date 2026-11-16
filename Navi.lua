@@ -10,10 +10,10 @@ EL01ROXHUB_UI:CreateWindow({
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://87524321260822",
+    Background = "rbxassetid://100343281816206",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
-        Title = "OPEN 01ROXHUB",
+        Title = "Onyx -- Duelos | HUB -- By Navi",
         Icon = "swords",
         CornerRadius = UDim.new(0, 14),
         StrokeThickness = 1.1,
@@ -56,7 +56,7 @@ task.spawn(function()
         tweenIn:Play()
     end
 end)
-local Home = EL01ROXHUB:Tab({ Title = "HOME", Icon = "house" })
+local Home = Onyx -- HUB:Tab({ Title = "HOME", Icon = "house" })
 local Aimbot = EL01ROXHUB:Tab({ Title = "AIMBOT", Icon = "crosshair" })
 local Visuales = EL01ROXHUB:Tab({ Title = "VISUALES", Icon = "eye" })
 local Movimiento = EL01ROXHUB:Tab({ Title = "MOVIMIENTO", Icon = "person-standing" })
