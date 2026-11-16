@@ -1647,7 +1647,7 @@ local function LoadHub()
 
     local MainButton = make("ImageButton", {
         Name = "MainButton", Size = UDim2.new(0, 46, 0, 46), Position = UDim2.new(0.5, -23, 0, 12),
-        BackgroundColor3 = Theme.Bg, BorderSizePixel = 0, Image = "rbxassetid://76111147434526",
+        BackgroundColor3 = Theme.Bg, BorderSizePixel = 0, Image = "rbxassetid://7112351058329601",
         ScaleType = Enum.ScaleType.Fit, Active = true, Draggable = true,
     }, ScreenGui)
     corner(MainButton, 8)
@@ -1682,7 +1682,7 @@ local function LoadHub()
     }, MainFrame)
     make("ImageLabel", {
         Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(0, 16, 0, 12), BackgroundTransparency = 1,
-        Image = "rbxassetid://76111147434526", ScaleType = Enum.ScaleType.Fit, ZIndex = 4,
+        Image = "rbxassetid://112351058329601", ScaleType = Enum.ScaleType.Fit, ZIndex = 4,
     }, Header)
     make("TextLabel", {
         Size = UDim2.new(1, -120, 0, 26), Position = UDim2.new(0, 60, 0, 8), BackgroundTransparency = 1,
