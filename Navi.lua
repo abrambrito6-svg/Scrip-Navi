@@ -3,7 +3,7 @@ local _version = "1.6.66"
 local  EL01ROXHUB_UI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
 local  EL01ROXHUB =
 EL01ROXHUB_UI:CreateWindow({
-    Title = "01ROXHUB | DUELS <font color='#FFD700'>[BETA]</font>",
+    Title = "Onyx -- Duelos | HUB -- By Navi <font color='#FFD700'>[BETA]</font>",
     Author = "BY NAVI HUB",
     Folder = "Onyx",
     Acrylic = false,
