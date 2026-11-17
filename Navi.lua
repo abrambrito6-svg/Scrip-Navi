@@ -13,7 +13,7 @@ NaviUI:CreateWindow({
     Background = "rbxassetid://126573191582738",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
-        Title = "OPEN Onyx",
+        Title = "OPEN Onyx By Navi",
         Icon = "swords",
         CornerRadius = UDim.new(0, 14),
         StrokeThickness = 1.1,
