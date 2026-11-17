@@ -10,7 +10,7 @@ EL01ROXHUB_UI:CreateWindow({
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://100343281816206",
+    Background = "rbxassetid://126573191582738",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
         Title = "OPEN OnyxHUB NAVI",
