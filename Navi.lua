@@ -1,10 +1,10 @@
 
 local _version = "1.6.66"
-local  EL01ROXHUB_UI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
-local  EL01ROXHUB =
-EL01ROXHUB_UI:CreateWindow({
+local NaviUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
+local NaviHub =
+NaviUI:CreateWindow({
     Title = "Onyx -- Duelos | HUB -- By Navi <font color='#FFD700'>[BETA]</font>",
-    Author = "BY NAVI HUB",
+    Author = "By Navi",
     Folder = "Onyx",
     Acrylic = false,
     Transparent = false,
@@ -13,7 +13,7 @@ EL01ROXHUB_UI:CreateWindow({
     Background = "rbxassetid://126573191582738",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
-        Title = "OPEN OnyxHUB NAVI",
+        Title = "OPEN Onyx",
         Icon = "swords",
         CornerRadius = UDim.new(0, 14),
         StrokeThickness = 1.1,
@@ -24,8 +24,8 @@ EL01ROXHUB_UI:CreateWindow({
     },
     Topbar = { Height = 44, ButtonsType = "Default" }
 })
-EL01ROXHUB:SetSize(UDim2.fromOffset(580, 460))
-EL01ROXHUB_UI:SetTheme("Dark")
+NaviHub:SetSize(UDim2.fromOffset(580, 460))
+NaviUI:SetTheme("Dark")
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
     local CoreGui = game:GetService("CoreGui")
@@ -56,16 +56,16 @@ task.spawn(function()
         tweenIn:Play()
     end
 end)
-local Home = EL01ROXHUB:Tab({ Title = "HOME", Icon = "house" })
-local Aimbot = EL01ROXHUB:Tab({ Title = "AIMBOT", Icon = "crosshair" })
-local Visuales = EL01ROXHUB:Tab({ Title = "VISUALES", Icon = "eye" })
-local Movimiento = EL01ROXHUB:Tab({ Title = "MOVIMIENTO", Icon = "person-standing" })
-local Animaciones = EL01ROXHUB:Tab({ Title = "ANIMACIONES", Icon = "footprints" })
-local AutoFarm = EL01ROXHUB:Tab({ Title = "ALTO FARM", Icon = "coins" })
-local AutoKills = EL01ROXHUB:Tab({ Title = "ALTO KILLS", Icon = "skull" })
-local Settings = EL01ROXHUB:Tab({ Title = 
-"SETTINGS", Icon = "settings" })
-Settings:Section({ Title = "SETTINGS", Icon = "settings" })
+local Home = NaviHub:Tab({ Title = "Home", Icon = "house" })
+local Aimbot = NaviHub:Tab({ Title = "Aimbot", Icon = "crosshair" })
+local Visuales = NaviHub:Tab({ Title = "Visuales", Icon = "eye" })
+local Movimiento = NaviHub:Tab({ Title = "Movimiento", Icon = "person-standing" })
+local Animaciones = NaviHub:Tab({ Title = "Animaciones", Icon = "footprints" })
+local AutoFarm = NaviHub:Tab({ Title = "Auto Farm", Icon = "coins" })
+local AutoKills = NaviHub:Tab({ Title = "Auto Kills", Icon = "skull" })
+local Settings = NaviHub:Tab({ Title = 
+"Settings", Icon = "settings" })
+Settings:Section({ Title = "Settings", Icon = "settings" })
 local reviewText = ""
 Settings:Input({
     Title = "ESCRIBE TU COMENTARIO",
@@ -78,7 +78,7 @@ Settings:Button({
     Callback = function()
         local HttpService = game:GetService("HttpService")
         local webhookUrl = "https://discord.com/api/webhooks/1570289852589805758/Kirv7QFS1IulSNGCBdrFx99IvyZ1eJt-aQ_3zqaNd_dlCUk0AI50fkUmaXfq93SH_vj7"
-        local data = { username = "01ROXHUB", embeds = {{ title = "NUEVO COMENTARIO", description = reviewText, fields = {{name="USER", value=game.Players.LocalPlayer.Name}} }} }
+        local data = { username = "Navi", embeds = {{ title = "NUEVO COMENTARIO", description = reviewText, fields = {{name="USER", value=game.Players.LocalPlayer.Name}} }} }
         local req = request or http_request or (syn and syn.request)
         if req then req({ Url = webhookUrl, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data) }) end
     end
@@ -513,7 +513,7 @@ Settings:Dropdown({
     Values = {"Dark", "Light", "Midnight", "Red", "Rose", "Indigo", "Amber", "Violet", "Emerald"},
     Value = "Dark",
     Callback = function(v)
-        EL01ROXHUB_UI:SetTheme(v)
+        NaviUI:SetTheme(v)
     end
 })
 
@@ -575,13 +575,13 @@ local activeESPs = {}
 local MAX_ESP_DISTANCE = 1500
 local serverDeadCharacters = setmetatable({}, { __mode = "k" })
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "01ROXHUB"
+screenGui.Name = "Navi"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.DisplayOrder = 999
 screenGui.Parent = LP:WaitForChild("PlayerGui")
 local espFolder = Instance.new("Folder")
-espFolder.Name = "01ROXHUB"
+espFolder.Name = "Navi"
 espFolder.Parent = screenGui
 local isEnemy, estaEnLobby, IsInMatchStrict
 local esEnemigoValido, esCuchillo, esPistola
@@ -702,20 +702,20 @@ local function setupPlayerEvents(p)
     }
     updateEnemy()
 end
-local RoxhubTargetConnections = {} local RoxhubTargetMonitorActive = false
-local function RoxhubMonitorConnection(c) RoxhubTargetConnections[#RoxhubTargetConnections + 1] = c return c end
-local function RoxhubStartTargetMonitor()
-    if RoxhubTargetMonitorActive then return end
-    RoxhubTargetMonitorActive = true
+local NaviTargetConnections = {} local NaviTargetMonitorActive = false
+local function NaviMonitorConnection(c) NaviTargetConnections[#NaviTargetConnections + 1] = c return c end
+local function NaviStartTargetMonitor()
+    if NaviTargetMonitorActive then return end
+    NaviTargetMonitorActive = true
     local function localChanged() updateMyTeam() dmvsInfectionMarkDirty() end
-    for _, name in ipairs({"Team", "TeamColor"}) do RoxhubMonitorConnection(player:GetPropertyChangedSignal(name):Connect(localChanged)) end
-    for _, name in ipairs({"Team", "team", "Game", "MatchId"}) do RoxhubMonitorConnection(player:GetAttributeChangedSignal(name):Connect(localChanged)) end
+    for _, name in ipairs({"Team", "TeamColor"}) do NaviMonitorConnection(player:GetPropertyChangedSignal(name):Connect(localChanged)) end
+    for _, name in ipairs({"Team", "team", "Game", "MatchId"}) do NaviMonitorConnection(player:GetAttributeChangedSignal(name):Connect(localChanged)) end
     for _, other in ipairs(Players:GetPlayers()) do if other ~= player then setupPlayerEvents(other) end end
-    RoxhubMonitorConnection(Players.PlayerAdded:Connect(function(other) setupPlayerEvents(other) dmvsInfectionMarkDirty() end))
-    RoxhubMonitorConnection(Players.PlayerRemoving:Connect(function(other) disconnectPlayerTeamEvents(other) updateEnemy() end))
+    NaviMonitorConnection(Players.PlayerAdded:Connect(function(other) setupPlayerEvents(other) dmvsInfectionMarkDirty() end))
+    NaviMonitorConnection(Players.PlayerRemoving:Connect(function(other) disconnectPlayerTeamEvents(other) updateEnemy() end))
     dmvsInvalidateScoreboard() dmvsInfectionMarkDirty()
 end
-startTargetMonitor = RoxhubStartTargetMonitor
+startTargetMonitor = NaviStartTargetMonitor
 isEnemy = function(targetPlayer)
     if not dmvsIsInSameGame(targetPlayer) or not targetPlayer.Character then return false end
     if not dmvsIsTargetAlive(targetPlayer) then return false end
@@ -803,7 +803,7 @@ AutoKills:Toggle({
         altoFireEnabled = v
         autoShootEnabled = v
         autoShootAgresivoEnabled = v
-        if v then task.spawn(LoopAtrasSolo) else getgenv().RoxhubTargetPart = nil end
+        if v then task.spawn(LoopAtrasSolo) else getgenv().NaviTargetPart = nil end
     end
 })
 
@@ -814,7 +814,7 @@ end
 local function getGameName()
     local ok, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
     if ok and info and info.Name then return info.Name end
-    return "01ROXHUB"
+    return "Navi"
 end
 local avatarThumb = "rbxthumb://type=AvatarHeadShot&id="..LP.UserId.."&w=420&h=420"
 local gameThumb = "rbxthumb://type=GameIcon&id="..game.GameId.."&w=512&h=512"
@@ -833,17 +833,17 @@ Aimbot:Toggle({
         autoShootEnabled = v
     end
 })
-Aimbot:Toggle({ Title = "AUTO SHOOT [NORMAL]", Value = false, Callback = function(v) autoShootEnabled = v if not v and not autoShootAgresivoEnabled then getgenv().RoxhubTargetPart = nil end end })
-Aimbot:Toggle({ Title = "AUTO SHOOT [AGRESIVO]", Value = false, Callback = function(v) autoShootAgresivoEnabled = v if not v and not autoShootEnabled then getgenv().RoxhubTargetPart = nil end end })
+Aimbot:Toggle({ Title = "AUTO SHOOT [NORMAL]", Value = false, Callback = function(v) autoShootEnabled = v if not v and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end })
+Aimbot:Toggle({ Title = "AUTO SHOOT [AGRESIVO]", Value = false, Callback = function(v) autoShootAgresivoEnabled = v if not v and not autoShootEnabled then getgenv().NaviTargetPart = nil end end })
 Aimbot:Dropdown({ Title = "TARGET PARTE", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) autoShootTargetPart = v end })
 Aimbot:Section({ Title = "SILENT AIM + FOV", Icon = "radar" })
-Aimbot:Toggle({ Title = "SILENT AIM", Value = false, Callback = function(v) silentAimManualEnabled = v if not v and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().RoxhubTargetPart = nil end end })
+Aimbot:Toggle({ Title = "SILENT AIM", Value = false, Callback = function(v) silentAimManualEnabled = v if not v and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end })
 Aimbot:Dropdown({ Title = "SILENT TARGET", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) silentAimTargetPart = v end })
-Aimbot:Toggle({ Title = "SILENT AIM [FOV]", Value = false, Callback = function(v) silentAimFovEnabled = v if not v and not silentAimManualEnabled and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().RoxhubTargetPart = nil end end })
+Aimbot:Toggle({ Title = "SILENT AIM [FOV]", Value = false, Callback = function(v) silentAimFovEnabled = v if not v and not silentAimManualEnabled and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end })
 Aimbot:Toggle({ Title = "MOSTRAR FOV", Value = false, Callback = function(v) fovVisiblePreference = v end })
 Aimbot:Slider({ Title = "TAMAÑO DEL FOV", Value = { Min = 10, Max = 800, Default = 120 }, Callback = function(v) fovRadius = v end })
 Aimbot:Toggle({ Title = "AUTO SACAR ARMA", Value = false, Callback = function(v) autoSacarArmaEnabled = v end })
-Movimiento:Section({ Title = "MOVIMIENTO", Icon = "zap", Opened = true })
+Movimiento:Section({ Title = "Movimiento", Icon = "zap", Opened = true })
 Movimiento:Toggle({
     Title = "INVISIBLE V6",
     Icon = "ghost",
@@ -912,7 +912,7 @@ Movimiento:Toggle({
         local lp = Players.LocalPlayer
         local PlayerGui = lp:WaitForChild("PlayerGui")
         if not state then
-            local old = PlayerGui:FindFirstChild("01ROXHUB_FLYSPEED")
+            local old = PlayerGui:FindFirstChild("Navi_FLYSPEED")
             if old then old:Destroy() end
             if _G.FlyCon1 then _G.FlyCon1:Disconnect() _G.FlyCon1 = nil end
             if _G.FlyCon2 then _G.FlyCon2:Disconnect() _G.FlyCon2 = nil end
@@ -921,11 +921,11 @@ Movimiento:Toggle({
             end
             return
         end
-        if PlayerGui:FindFirstChild("01ROXHUB_FLYSPEED") then
-            PlayerGui:FindFirstChild("01ROXHUB_FLYSPEED"):Destroy()
+        if PlayerGui:FindFirstChild("Navi_FLYSPEED") then
+            PlayerGui:FindFirstChild("Navi_FLYSPEED"):Destroy()
         end
         local gui = Instance.new("ScreenGui")
-        gui.Name = "01ROXHUB_FLYSPEED"
+        gui.Name = "Navi_FLYSPEED"
         gui.ResetOnSpawn = false
         gui.Parent = PlayerGui
         local SPEED = 0.75
@@ -933,7 +933,7 @@ Movimiento:Toggle({
         local mov = {W=false,A=false,S=false,D=false,Up=false,Down=false}
         local presionando = false
         local pad = Instance.new("Frame", gui)
-        pad.Name = "01ROXHUB_FLYSPEED"
+        pad.Name = "Navi_FLYSPEED"
         pad.Size = UDim2.fromOffset(128,185)
         pad.AnchorPoint = Vector2.new(0.5,0.5)
         pad.Position = UDim2.fromScale(0.5,0.65)
@@ -962,14 +962,14 @@ Movimiento:Toggle({
             grad.Rotation = 90
             return b
         end
-        local up = crearAzul(UDim2.fromOffset(49,8), "▲", 30, 30, "01ROXHUB")
-        local left = crearAzul(UDim2.fromOffset(10,42), "◄", 30, 30, "01ROXHUB")
-        local right = crearAzul(UDim2.fromOffset(88,42), "►", 30, 30, "01ROXHUB")
-        local down = crearAzul(UDim2.fromOffset(49,76), "▼", 30, 30, "01ROXHUB")
-        local upV = crearAzul(UDim2.fromOffset(10,110), "⬆", 30, 30, "01ROXHUB")
-        local downV = crearAzul(UDim2.fromOffset(88,110), "⬇", 30, 30, "01ROXHUB")
-        local bajar = crearAzul(UDim2.fromOffset(6,148), "BAJAR", 54, 28, "01ROXHUB")
-        local subir = crearAzul(UDim2.fromOffset(68,148), "SUBIR", 54, 28, "01ROXHUB")
+        local up = crearAzul(UDim2.fromOffset(49,8), "▲", 30, 30, "Navi")
+        local left = crearAzul(UDim2.fromOffset(10,42), "◄", 30, 30, "Navi")
+        local right = crearAzul(UDim2.fromOffset(88,42), "►", 30, 30, "Navi")
+        local down = crearAzul(UDim2.fromOffset(49,76), "▼", 30, 30, "Navi")
+        local upV = crearAzul(UDim2.fromOffset(10,110), "⬆", 30, 30, "Navi")
+        local downV = crearAzul(UDim2.fromOffset(88,110), "⬇", 30, 30, "Navi")
+        local bajar = crearAzul(UDim2.fromOffset(6,148), "BAJAR", 54, 28, "Navi")
+        local subir = crearAzul(UDim2.fromOffset(68,148), "SUBIR", 54, 28, "Navi")
         bajar.BackgroundColor3 = Color3.fromRGB(25,35,75)
         subir.BackgroundColor3 = Color3.fromRGB(20,55,120)
         local function estaEnPartida()
@@ -1049,7 +1049,7 @@ Movimiento:Toggle({
         if _G.FlyCon1 then _G.FlyCon1:Disconnect() end
         if _G.FlyCon2 then _G.FlyCon2:Disconnect() end
         _G.FlyCon1 = RunService.RenderStepped:Connect(function()
-            if not PlayerGui:FindFirstChild("01ROXHUB_FLYSPEED") then return end
+            if not PlayerGui:FindFirstChild("Navi_FLYSPEED") then return end
             if not estaEnPartida() then
                 pad.Visible = false
                 return
@@ -1123,14 +1123,14 @@ task.spawn(function()
         end
     end
 end)
-getgenv().RoxhubTargetPart = nil
+getgenv().NaviTargetPart = nil
 local oldNamecall
 if hookmetamethod and getnamecallmethod and checkcaller then
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
-        if not checkcaller() and getgenv().RoxhubTargetPart then
+        if not checkcaller() and getgenv().NaviTargetPart then
             if method == "Raycast" and self == workspace then
-                local target = getgenv().RoxhubTargetPart
+                local target = getgenv().NaviTargetPart
                 if target and target.Parent then
                     local origin, direction, p3 = ...
                     if typeof(direction) == "Vector3" and direction.Magnitude > 20 then
@@ -1141,7 +1141,7 @@ if hookmetamethod and getnamecallmethod and checkcaller then
                         end
                     end
                 else
-                    getgenv().RoxhubTargetPart = nil
+                    getgenv().NaviTargetPart = nil
                 end
             end
         end
@@ -1155,8 +1155,8 @@ task.spawn(function()
             local char = LP.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
             local arma = char:FindFirstChildOfClass("Tool")
-            if not arma or not arma:FindFirstChild("Handle") then getgenv().RoxhubTargetPart = nil continue end
-            if esCuchillo(arma) then getgenv().RoxhubTargetPart = nil continue end
+            if not arma or not arma:FindFirstChild("Handle") then getgenv().NaviTargetPart = nil continue end
+            if esCuchillo(arma) then getgenv().NaviTargetPart = nil continue end
             local closestPart = nil local shortest = math.huge
             local myPos = char.HumanoidRootPart.Position local headPos = char:FindFirstChild("Head") and char.Head.Position or myPos
             for _, p in pairs(Players:GetPlayers()) do
@@ -1177,7 +1177,7 @@ task.spawn(function()
                     end
                 end
             end
-            if closestPart then getgenv().RoxhubTargetPart = closestPart pcall(function() arma:Activate() task.delay(0.05, function() if arma.Parent == char then arma:Deactivate() end end) end) task.wait(0.2) else getgenv().RoxhubTargetPart = nil end
+            if closestPart then getgenv().NaviTargetPart = closestPart pcall(function() arma:Activate() task.delay(0.05, function() if arma.Parent == char then arma:Deactivate() end end) end) task.wait(0.2) else getgenv().NaviTargetPart = nil end
         end
     end
 end)
@@ -1209,7 +1209,7 @@ task.spawn(function()
                     end
                 end
             end
-            if closestPart then getgenv().RoxhubTargetPart = closestPart else if not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().RoxhubTargetPart = nil end end
+            if closestPart then getgenv().NaviTargetPart = closestPart else if not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end
         end
     end
 end)
@@ -1226,8 +1226,8 @@ local function WatchServerDeath(char)
 end
 for _, p in ipairs(Players:GetPlayers()) do if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end
 Players.PlayerAdded:Connect(function(p) if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end)
-Visuales:Section({ Title = "VISUALES", Icon = "eye", Opened = true })
-Visuales:Toggle({ Title = "ESP HIGHILGHT", Value = false, Callback = function(s) espEnabled = s if not s then for _, p in pairs(Players:GetPlayers()) do local h = espFolder:FindFirstChild(p.Name .. "01ROXHUB") if h then h:Destroy() end activeESPs[p] = nil end end end })
+Visuales:Section({ Title = "Visuales", Icon = "eye", Opened = true })
+Visuales:Toggle({ Title = "ESP HIGHILGHT", Value = false, Callback = function(s) espEnabled = s if not s then for _, p in pairs(Players:GetPlayers()) do local h = espFolder:FindFirstChild(p.Name .. "Navi") if h then h:Destroy() end activeESPs[p] = nil end end end })
 Visuales:Colorpicker({ Title = "COLOR DEL ESP", Default = Color3.fromRGB(255, 0, 0), Callback = function(c) espColor = c for _, v in pairs(activeESPs) do if v.Highlight then v.Highlight.FillColor = c end end end })
 task.spawn(function()
     while task.wait(0.2) do
@@ -1242,7 +1242,7 @@ task.spawn(function()
                             if activeESPs[p] and activeESPs[p].Char ~= char then cleanESP(p) end
                             if not activeESPs[p] then
                                 local highlight = Instance.new("Highlight")
-                                highlight.Name = p.Name .. "01ROXHUB"
+                                highlight.Name = p.Name .. "Navi"
                                 highlight.FillTransparency = 0.6
                                 highlight.OutlineTransparency = 1
                                 highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -1278,7 +1278,7 @@ RunService.RenderStepped:Connect(function()
         FOVCircle.Position = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
         FOVCircle.Radius = fovRadius
         FOVCircle.Visible = true
-        if silentAimFovEnabled and getgenv().RoxhubTargetPart then FOVCircle.Color = Color3.fromRGB(0, 255, 0) else FOVCircle.Color = Color3.fromRGB(255, 255, 255) end
+        if silentAimFovEnabled and getgenv().NaviTargetPart then FOVCircle.Color = Color3.fromRGB(0, 255, 0) else FOVCircle.Color = Color3.fromRGB(255, 255, 255) end
     elseif FOVCircle then
         FOVCircle.Visible = false
     end
@@ -1337,9 +1337,9 @@ local Players01 = game:GetService("Players")
 local ContentProvider01 = game:GetService("ContentProvider")
 local RunService01 = game:GetService("RunService")
 local LocalPlayer01 = Players01.LocalPlayer
-local SHELL_NAME_01ROXHUB = "01ROXHUB_Shell"
+local SHELL_NAME_Navi = "Navi_Shell"
 local env01 = (getgenv and getgenv()) or _G
-if env01.RoxhubAvatarCleanup then pcall(env01.RoxhubAvatarCleanup) end
+if env01.NaviAvatarCleanup then pcall(env01.NaviAvatarCleanup) end
 local function withTimeout01(secs, fn)
     local res,done=nil,false
     task.spawn(function() local ok,r=pcall(fn) if ok then res=r end done=true end)
@@ -1349,17 +1349,17 @@ end
 local function preload01(model)
     local list={} for _,d in ipairs(model:GetDescendants()) do if d:IsA("MeshPart") or d:IsA("SpecialMesh") or d:IsA("Decal") or d:IsA("Texture") or d:IsA("SurfaceAppearance") or d:IsA("Shirt") or d:IsA("Pants") or d:IsA("ShirtGraphic") then list[#list+1]=d end end if #list==0 then return end withTimeout01(15,function() ContentProvider01:PreloadAsync(list) end)
 end
-local LEG_NAMES_01ROXHUB={LeftFoot=true,RightFoot=true,LeftLowerLeg=true,RightLowerLeg=true,["Left Leg"]=true,["Right Leg"]=true}
+local LEG_NAMES_Navi={LeftFoot=true,RightFoot=true,LeftLowerLeg=true,RightLowerLeg=true,["Left Leg"]=true,["Right Leg"]=true}
 local State01={template=nil,desc=nil,shell=nil,sRoot=nil,shellParts={},char=nil,conns={},hidden={},pairList={},offset=CFrame.new(),fp=false,lastScan=0,sAnimator=nil,mirror={},animActive=false,c0Dirty=false}
 local Build01={} local BuildOrder01={} local MAX_BUILDS_01=4
 local function loadAsset01(id) local obj local ok=pcall(function() obj=game:GetObjects("rbxassetid://"..id)[1] end) if ok and obj then return obj end ok=pcall(function() obj=game:GetService("InsertService"):LoadAsset(id) end) if ok and obj then return obj end end
 local function findClass01(obj,class) if not obj then return nil end if obj:IsA(class) then return obj end return obj:FindFirstChildWhichIsA(class,true) end
-local function buildFromAssets01(desc) local model=Instance.new("Model") model.Name="AvatarSource01ROXHUB" local pending=0 local function async(fn) pending=pending+1 task.spawn(function() pcall(fn) pending=pending-1 end) end local bc=Instance.new("BodyColors") bc.HeadColor3=desc.HeadColor bc.TorsoColor3=desc.TorsoColor bc.LeftArmColor3=desc.LeftArmColor bc.RightArmColor3=desc.RightArmColor bc.LeftLegColor3=desc.LeftLegColor bc.RightLegColor3=desc.RightLegColor bc.Parent=model local function loadInto(id,class,rename) if id and id>0 then async(function() local o=findClass01(loadAsset01(id),class) if o then if rename then o.Name=rename end o.Parent=model end end) end end loadInto(desc.Shirt,"Shirt") loadInto(desc.Pants,"Pants") loadInto(desc.GraphicTShirt,"ShirtGraphic") loadInto(desc.Face,"Decal","face") local okA,accs=pcall(function() return desc:GetAccessories(true) end) if okA and type(accs)=="table" then for _,a in ipairs(accs) do if a.AssetId and a.AssetId>0 then async(function() local acc=findClass01(loadAsset01(a.AssetId),"Accessory") if acc then local wl=acc:FindFirstChildWhichIsA("WrapLayer",true) if wl then if a.Order then wl.Order=a.Order end if a.Puffiness then wl.Puffiness=a.Puffiness end end acc.Parent=model end end) end end end local t0=os.clock() while pending>0 and os.clock()-t0<25 do task.wait(0.05) end return model end
-local function attachByAttachments01(model,acc) local handle=acc:FindFirstChild("Handle") if not handle or not handle:IsA("BasePart") then acc.Parent=model return false end for _,d in ipairs(handle:GetChildren()) do if d:IsA("Weld") or d:IsA("Motor6D") or d:IsA("WeldConstraint") then d:Destroy() end end for _,a in ipairs(handle:GetChildren()) do if a:IsA("Attachment") then local target for _,p in ipairs(model:GetChildren()) do if p:IsA("BasePart") then local t=p:FindFirstChild(a.Name) if t and t:IsA("Attachment") then target=t break end end end if target then local w=Instance.new("Weld") w.Name="AccessoryWeld01ROXHUB" w.Part0=handle w.Part1=target.Parent w.C0=a.CFrame w.C1=target.CFrame w.Parent=handle acc.Parent=model return true end end end acc.Parent=model return false end
+local function buildFromAssets01(desc) local model=Instance.new("Model") model.Name="AvatarSourceNavi" local pending=0 local function async(fn) pending=pending+1 task.spawn(function() pcall(fn) pending=pending-1 end) end local bc=Instance.new("BodyColors") bc.HeadColor3=desc.HeadColor bc.TorsoColor3=desc.TorsoColor bc.LeftArmColor3=desc.LeftArmColor bc.RightArmColor3=desc.RightArmColor bc.LeftLegColor3=desc.LeftLegColor bc.RightLegColor3=desc.RightLegColor bc.Parent=model local function loadInto(id,class,rename) if id and id>0 then async(function() local o=findClass01(loadAsset01(id),class) if o then if rename then o.Name=rename end o.Parent=model end end) end end loadInto(desc.Shirt,"Shirt") loadInto(desc.Pants,"Pants") loadInto(desc.GraphicTShirt,"ShirtGraphic") loadInto(desc.Face,"Decal","face") local okA,accs=pcall(function() return desc:GetAccessories(true) end) if okA and type(accs)=="table" then for _,a in ipairs(accs) do if a.AssetId and a.AssetId>0 then async(function() local acc=findClass01(loadAsset01(a.AssetId),"Accessory") if acc then local wl=acc:FindFirstChildWhichIsA("WrapLayer",true) if wl then if a.Order then wl.Order=a.Order end if a.Puffiness then wl.Puffiness=a.Puffiness end end acc.Parent=model end end) end end end local t0=os.clock() while pending>0 and os.clock()-t0<25 do task.wait(0.05) end return model end
+local function attachByAttachments01(model,acc) local handle=acc:FindFirstChild("Handle") if not handle or not handle:IsA("BasePart") then acc.Parent=model return false end for _,d in ipairs(handle:GetChildren()) do if d:IsA("Weld") or d:IsA("Motor6D") or d:IsA("WeldConstraint") then d:Destroy() end end for _,a in ipairs(handle:GetChildren()) do if a:IsA("Attachment") then local target for _,p in ipairs(model:GetChildren()) do if p:IsA("BasePart") then local t=p:FindFirstChild(a.Name) if t and t:IsA("Attachment") then target=t break end end end if target then local w=Instance.new("Weld") w.Name="AccessoryWeldNavi" w.Part0=handle w.Part1=target.Parent w.C0=a.CFrame w.C1=target.CFrame w.Parent=handle acc.Parent=model return true end end end acc.Parent=model return false end
 local function prepShell01(model) for _,d in ipairs(model:GetDescendants()) do if d:IsA("LuaSourceContainer") or d:IsA("Tool") or d:IsA("ForceField") or d:IsA("Sound") or d:IsA("BillboardGui") or d:IsA("SurfaceGui") then pcall(function() d:Destroy() end) end end for _,d in ipairs(model:GetDescendants()) do if d:IsA("BasePart") then pcall(function() d.Anchored=false d.CanCollide=false d.CanTouch=false d.CanQuery=false d.Massless=true end) end end local root=model:FindFirstChild("HumanoidRootPart") if root then root.Anchored=true end local h=model:FindFirstChildOfClass("Humanoid") if h then pcall(function() h.DisplayDistanceType=Enum.HumanoidDisplayDistanceType.None end) pcall(function() h.HealthDisplayType=Enum.HumanoidHealthDisplayType.AlwaysOff end) pcall(function() h.BreakJointsOnDeath=false end) pcall(function() h.RequiresNeck=false end) pcall(function() h.EvaluateStateMachine=false end) pcall(function() h.AutoRotate=false end) pcall(function() h.WalkSpeed=0 end) pcall(function() h.PlatformStand=true end) end end
 local function templateFromDescription01(desc,rig) for attempt=1,3 do local m=withTimeout01(30,function() return Players01:CreateHumanoidModelFromDescription(desc,rig) end) if typeof(m)=="Instance" then local h=m:FindFirstChildOfClass("Humanoid") if m:FindFirstChild("HumanoidRootPart") and h and h.RigType==rig then return m end pcall(function() m:Destroy() end) end task.wait(0.3) end return nil end
 local function templateFromAssets01(desc,char) local base local okc=pcall(function() char.Archivable=true for _,d in ipairs(char:GetDescendants()) do pcall(function() d.Archivable=true end) end for inst,t in pairs(State01.hidden) do if inst.Parent then inst.Transparency=t end end base=char:Clone() for inst in pairs(State01.hidden) do if inst.Parent then inst.Transparency=1 end end end) if not okc or not base then return nil end for _,d in ipairs(base:GetDescendants()) do if d:IsA("LuaSourceContainer") or d:IsA("Tool") or d:IsA("Accoutrement") or d:IsA("CharacterAppearance") or d:IsA("BillboardGui") or d:IsA("SurfaceGui") or d:IsA("Highlight") or d:IsA("ForceField") then pcall(function() d:Destroy() end) end end local src=buildFromAssets01(desc) for _,c in ipairs(src:GetChildren()) do if c:IsA("CharacterAppearance") then c.Parent=base end end local head=base:FindFirstChild("Head") local face=src:FindFirstChild("face") if head and face then for _,d in ipairs(head:GetChildren()) do if d:IsA("Decal") then d:Destroy() end end face.Parent=head end for _,a in ipairs(src:GetChildren()) do if a:IsA("Accoutrement") then attachByAttachments01(base,a) end end pcall(function() src:Destroy() end) return base end
-local function lowestLeg01(model) local root=model:FindFirstChild("HumanoidRootPart") if not root then return nil end local cf={[root]=CFrame.identity} local joints={} for _,d in ipairs(model:GetDescendants()) do if d:IsA("Motor6D") and d.Part0 and d.Part1 then joints[#joints+1]=d end end local changed,guard=true,0 while changed and guard<30 do changed=false guard=guard+1 for _,j in ipairs(joints) do local a,b=j.Part0,j.Part1 if cf[a] and not cf[b] then cf[b]=cf[a]*j.C0*j.C1:Inverse() changed=true elseif cf[b] and not cf[a] then cf[a]=cf[b]*j.C1*j.C0:Inverse() changed=true end end end local low for p,c in pairs(cf) do if LEG_NAMES_01ROXHUB[p.Name] and p.Parent==model then local s=p.Size local ext=0.5*(math.abs(c.RightVector.Y)*s.X+math.abs(c.UpVector.Y)*s.Y+math.abs(c.LookVector.Y)*s.Z) local y=c.Position.Y-ext if not low or y<low then low=y end end end return low end
+local function lowestLeg01(model) local root=model:FindFirstChild("HumanoidRootPart") if not root then return nil end local cf={[root]=CFrame.identity} local joints={} for _,d in ipairs(model:GetDescendants()) do if d:IsA("Motor6D") and d.Part0 and d.Part1 then joints[#joints+1]=d end end local changed,guard=true,0 while changed and guard<30 do changed=false guard=guard+1 for _,j in ipairs(joints) do local a,b=j.Part0,j.Part1 if cf[a] and not cf[b] then cf[b]=cf[a]*j.C0*j.C1:Inverse() changed=true elseif cf[b] and not cf[a] then cf[a]=cf[b]*j.C1*j.C0:Inverse() changed=true end end end local low for p,c in pairs(cf) do if LEG_NAMES_Navi[p.Name] and p.Parent==model then local s=p.Size local ext=0.5*(math.abs(c.RightVector.Y)*s.X+math.abs(c.UpVector.Y)*s.Y+math.abs(c.LookVector.Y)*s.Z) local y=c.Position.Y-ext if not low or y<low then low=y end end end return low end
 local function hideReal01(char) local function hide(p) if State01.hidden[p]==nil then State01.hidden[p]=p.Transparency end if p.Transparency~=1 then p.Transparency=1 end end for _,c in ipairs(char:GetChildren()) do if c:IsA("BasePart") and c.Name~="HumanoidRootPart" then hide(c) elseif c:IsA("Accoutrement") then for _,d in ipairs(c:GetDescendants()) do if d:IsA("BasePart") then hide(d) end end end end end
 local function setShellLTM01(v) for _,p in ipairs(State01.shellParts) do pcall(function() p.LocalTransparencyModifier=v end) end end
 local function unmount01() for _,c in ipairs(State01.conns) do pcall(function() c:Disconnect() end) end State01.conns={} if State01.shell then pcall(function() State01.shell:Destroy() end) end for inst,t in pairs(State01.hidden) do if inst.Parent then pcall(function() inst.Transparency=t end) end end State01.shell,State01.sRoot,State01.char=nil,nil,nil State01.shellParts,State01.hidden,State01.pairList={},{},{} State01.mirror,State01.sAnimator,State01.animActive,State01.c0Dirty={},nil,false,false State01.fp=false end
@@ -1369,7 +1369,7 @@ local function resetC001() for _,pr in ipairs(State01.pairList) do local sm=pr[2
 local function syncPose01() local shell,char=State01.shell,State01.char if not shell or not char or not char.Parent then return end if State01.animActive then if State01.c0Dirty then resetC001() end return end for _,pr in ipairs(State01.pairList) do local rm,sm,baseC0=pr[1],pr[2],pr[3] if rm.Parent and sm.Parent then local ok,tr=pcall(poseTransform01,rm) if ok and tr then sm.C0=baseC0*tr end end end State01.c0Dirty=true end
 local function mirrorAnimations01() local char,shell,sAnim=State01.char,State01.shell,State01.sAnimator if not char or not shell or not sAnim or not sAnim.Parent then State01.animActive=false return end local rHum=char:FindFirstChildOfClass("Humanoid") local rAnim=rHum and rHum:FindFirstChildOfClass("Animator") if not rAnim then State01.animActive=false return end local okT,tracks=pcall(function() return rAnim:GetPlayingAnimationTracks() end) if not okT or type(tracks)~="table" then State01.animActive=false return end local seen,count={},0 for _,rt in ipairs(tracks) do local anim=rt.Animation if anim and anim.AnimationId~="" then seen[rt]=true local m=State01.mirror[rt] if not m then local ok,st=pcall(function() return sAnim:LoadAnimation(anim) end) if ok and st then m=st State01.mirror[rt]=st pcall(function() st.Priority=rt.Priority st.Looped=rt.Looped st:Play(0.1,math.max(rt.WeightCurrent,0.01),rt.Speed) end) end end if m then pcall(function() if not m.IsPlaying then m:Play(0.1,math.max(rt.WeightCurrent,0.01),rt.Speed) end m.Priority=rt.Priority m.Looped=rt.Looped m:AdjustWeight(math.max(rt.WeightCurrent,0.01),0) m:AdjustSpeed(rt.Speed) local len=rt.Length if len and len>0 then local d=math.abs(m.TimePosition-rt.TimePosition) if rt.Looped then d=math.min(d,len-d) end if d>0.25 then m.TimePosition=rt.TimePosition end end end) count=count+1 end end end for rt,st in pairs(State01.mirror) do if not seen[rt] then pcall(function() st:Stop(0.1) end) State01.mirror[rt]=nil end end State01.animActive=count>0 end
 local function onStep01() local shell,char,sRoot=State01.shell,State01.char,State01.sRoot if not shell or not char or not sRoot or not char.Parent then return end local hrp=char:FindFirstChild("HumanoidRootPart") if not hrp then return end local want=workspace.CurrentCamera or workspace if shell.Parent~=want then shell.Parent=want end for inst in pairs(State01.hidden) do if inst.Parent and inst.Transparency~=1 then inst.Transparency=1 end end noCollide01() sRoot.CFrame=hrp.CFrame*State01.offset mirrorAnimations01() syncPose01() local now=os.clock() if now-State01.lastScan>0.3 then State01.lastScan=now hideReal01(char) end local cam=workspace.CurrentCamera local head=char:FindFirstChild("Head") if cam and head then local fp=(cam.CFrame.Position-head.Position).Magnitude<1.6 if fp~=State01.fp then State01.fp=fp setShellLTM01(fp and 1 or 0) end end end
-local function mount01(char,hum,template) unmount01() local hrp=char:FindFirstChild("HumanoidRootPart") if not hrp then return false end local shell=template:Clone() shell.Name=SHELL_NAME_01ROXHUB local sRoot=shell:FindFirstChild("HumanoidRootPart") if not sRoot then shell:Destroy() return false end local sh=shell:FindFirstChildOfClass("Humanoid") local sAnimator if sh then pcall(function() sh.WalkSpeed=0 end) pcall(function() sh.JumpPower=0 end) pcall(function() sh.AutoRotate=false end) pcall(function() sh.PlatformStand=true end) sAnimator=sh:FindFirstChildOfClass("Animator") if not sAnimator then sAnimator=Instance.new("Animator") sAnimator.Parent=sh end end local list={} for _,rm in ipairs(char:GetDescendants()) do if rm:IsA("Motor6D") and rm.Parent and rm.Parent.Parent==char then local sp=shell:FindFirstChild(rm.Parent.Name) local sm=sp and sp:FindFirstChild(rm.Name) if sm and sm:IsA("Motor6D") then list[#list+1]={rm,sm,sm.C0} end end end local dy=0 local lowR,lowS=lowestLeg01(char),lowestLeg01(shell) if lowR and lowS then dy=math.clamp(lowR-lowS,-8,8) end State01.offset=CFrame.new(0,dy,0) sRoot.Anchored=true shell.PrimaryPart=sRoot shell:PivotTo(hrp.CFrame*State01.offset) local parts={} for _,d in ipairs(shell:GetDescendants()) do if d:IsA("BasePart") then pcall(function() d.CanCollide=false d.CanTouch=false d.CanQuery=false d.Massless=true end) parts[#parts+1]=d end end State01.shell,State01.sRoot,State01.char=shell,sRoot,char State01.sAnimator,State01.mirror,State01.animActive,State01.c0Dirty=sAnimator,{},false,false State01.shellParts,State01.pairList=parts,list State01.fp=false shell.Parent=workspace.CurrentCamera or workspace hideReal01(char) State01.lastScan=os.clock() State01.conns[#State01.conns+1]=RunService01.RenderStepped:Connect(onStep01) State01.conns[#State01.conns+1]=RunService01.Stepped:Connect(function() noCollide01() syncPose01() end) State01.conns[#State01.conns+1]=RunService01.Heartbeat:Connect(function() noCollide01() syncPose01() end) return true end
+local function mount01(char,hum,template) unmount01() local hrp=char:FindFirstChild("HumanoidRootPart") if not hrp then return false end local shell=template:Clone() shell.Name=SHELL_NAME_Navi local sRoot=shell:FindFirstChild("HumanoidRootPart") if not sRoot then shell:Destroy() return false end local sh=shell:FindFirstChildOfClass("Humanoid") local sAnimator if sh then pcall(function() sh.WalkSpeed=0 end) pcall(function() sh.JumpPower=0 end) pcall(function() sh.AutoRotate=false end) pcall(function() sh.PlatformStand=true end) sAnimator=sh:FindFirstChildOfClass("Animator") if not sAnimator then sAnimator=Instance.new("Animator") sAnimator.Parent=sh end end local list={} for _,rm in ipairs(char:GetDescendants()) do if rm:IsA("Motor6D") and rm.Parent and rm.Parent.Parent==char then local sp=shell:FindFirstChild(rm.Parent.Name) local sm=sp and sp:FindFirstChild(rm.Name) if sm and sm:IsA("Motor6D") then list[#list+1]={rm,sm,sm.C0} end end end local dy=0 local lowR,lowS=lowestLeg01(char),lowestLeg01(shell) if lowR and lowS then dy=math.clamp(lowR-lowS,-8,8) end State01.offset=CFrame.new(0,dy,0) sRoot.Anchored=true shell.PrimaryPart=sRoot shell:PivotTo(hrp.CFrame*State01.offset) local parts={} for _,d in ipairs(shell:GetDescendants()) do if d:IsA("BasePart") then pcall(function() d.CanCollide=false d.CanTouch=false d.CanQuery=false d.Massless=true end) parts[#parts+1]=d end end State01.shell,State01.sRoot,State01.char=shell,sRoot,char State01.sAnimator,State01.mirror,State01.animActive,State01.c0Dirty=sAnimator,{},false,false State01.shellParts,State01.pairList=parts,list State01.fp=false shell.Parent=workspace.CurrentCamera or workspace hideReal01(char) State01.lastScan=os.clock() State01.conns[#State01.conns+1]=RunService01.RenderStepped:Connect(onStep01) State01.conns[#State01.conns+1]=RunService01.Stepped:Connect(function() noCollide01() syncPose01() end) State01.conns[#State01.conns+1]=RunService01.Heartbeat:Connect(function() noCollide01() syncPose01() end) return true end
 local function buildTemplate01(desc,rig,char) local template,mode=templateFromDescription01(desc,rig),"model" if not template then template,mode=templateFromAssets01(desc,char),"assets" end if not template then return nil end prepShell01(template) preload01(template) return template,mode end
 local function evictBuilds01() while #BuildOrder01>MAX_BUILDS_01 do local victim for i,id in ipairs(BuildOrder01) do local b=Build01[id] if b and b.state~="building" and b.template~=State01.template then victim=i break end end if not victim then return end local id=table.remove(BuildOrder01,victim) local b=Build01[id] Build01[id]=nil if b and b.template then pcall(function() b.template:Destroy() end) end end end
 local function ensureBuild01(entry) local char=LocalPlayer01.Character local hum=char and char:FindFirstChildOfClass("Humanoid") if not hum then return nil end local rig=hum.RigType local b=Build01[entry.id] if b and b.rig==rig and b.state~="failed" then return b end if b then local i=table.find(BuildOrder01,entry.id) if i then table.remove(BuildOrder01,i) end if b.template and b.template~=State01.template then pcall(function() b.template:Destroy() end) end end b={state="building",rig=rig} Build01[entry.id]=b BuildOrder01[#BuildOrder01+1]=entry.id task.spawn(function() local ok,t,mode=pcall(buildTemplate01,entry.desc,rig,char) if ok and t then b.template,b.mode,b.state=t,mode,"ready" else b.state="failed" end evictBuilds01() end) return b end
@@ -1416,24 +1416,6 @@ Animaciones:Button({
     end
 })
 
-local Creditos = EL01ROXHUB:Tab({ Title = "CRÉDITOS", Icon = "gem" })
-
-Creditos:Section({ Title = "CRÉDITOS", Icon = "crown" })
-
-Creditos:Paragraph({
-    Title = "EL 01 ROX HUB",
-    Desc = '<font color="#FFD700">[CREADOR]</font> \nDESARROLLADOR Y CREADOR DEL PROYECTO OPEN 01ROXHUB',
-    Image = "rbxassetid://76111147434526",
-    ImageSize = 75
-})
-
-Creditos:Paragraph({
-    Title = "MATI HUB",
-    Desc = '<font color="#FFD700">[CREADOR]</font> \nDESARROLLADOR Y CREADOR DEL PROYECTO OPEN 01ROXHUB',
-    Image = "rbxassetid://138199482138345",
-    ImageSize = 75
-})
-
 Visuales:Space()
 Visuales:Divider()
 Visuales:Space()
@@ -1448,7 +1430,7 @@ local function limpiarHitboxes()
     for _, targetPlayer in ipairs(Players:GetPlayers()) do
         local character = targetPlayer.Character
         if character then
-            local hitbox = character:FindFirstChild("01ROXHUB_HITBOX")
+            local hitbox = character:FindFirstChild("Navi_HITBOX")
             if hitbox then hitbox:Destroy() end
         end
     end
@@ -1498,10 +1480,10 @@ task.spawn(function()
                     local rootPart = character:FindFirstChild("HumanoidRootPart")
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
                     if rootPart and humanoid and humanoid.Health > 0 then
-                        local hitbox = character:FindFirstChild("01ROXHUB_HITBOX")
+                        local hitbox = character:FindFirstChild("Navi_HITBOX")
                         if not hitbox then
                             hitbox = Instance.new("Part")
-                            hitbox.Name = "01ROXHUB_HITBOX"
+                            hitbox.Name = "Navi_HITBOX"
                             hitbox.Size = tamanoObjetivo
                             hitbox.Transparency = transObjetivo
                             hitbox.Color = hitboxColor
@@ -1521,14 +1503,14 @@ task.spawn(function()
                             if not hitbox.CanQuery then hitbox.CanQuery = true end
                         end
                     else
-                        local hitbox = character:FindFirstChild("01ROXHUB_HITBOX")
+                        local hitbox = character:FindFirstChild("Navi_HITBOX")
                         if hitbox then hitbox:Destroy() end
                     end
                 end
             else
                 local char = targetPlayer.Character
                 if char then
-                    local hb = char:FindFirstChild("01ROXHUB_HITBOX")
+                    local hb = char:FindFirstChild("Navi_HITBOX")
                     if hb then hb:Destroy() end
                 end
             end
@@ -1538,7 +1520,7 @@ end)
  
 Settings:Section({ Title = "MODO STREAMER", Icon = "user-x" })
 
-local spoofNameText = "01ROXHUB"
+local spoofNameText = "Navi"
 local isWorkspaceLooping = false
 
 local function safeReplace(str, find, replace)
@@ -1548,7 +1530,7 @@ end
 
 local function processText(v, myName, myDisp)
     local parentGui = v:FindFirstAncestorWhichIsA("ScreenGui")
-    if parentGui and (string.find(parentGui.Name, "WindUI") or string.find(parentGui.Name, "01ROXHUB")) then return end
+    if parentGui and (string.find(parentGui.Name, "WindUI") or string.find(parentGui.Name, "Navi")) then return end
     
     if v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("TextButton") then
         local txt = v.Text
@@ -1601,7 +1583,7 @@ Settings:Toggle({
 Settings:Input({
     Title = "NOMBRE FALSO",
     Placeholder = "XXX-XXXX-XXX",
-    Value = "01ROXHUB",
+    Value = "Navi",
     Callback = function(text)
         if text ~= "" then
             spoofNameText = text
@@ -1626,7 +1608,7 @@ local KillSounds = {
 }
 
 local KillSoundPlayer = Instance.new("Sound")
-KillSoundPlayer.Name = "01ROXHUB_KillSound"
+KillSoundPlayer.Name = "Navi_KillSound"
 KillSoundPlayer.Volume = 1
 KillSoundPlayer.Looped = false
 KillSoundPlayer.Parent = game:GetService("SoundService")
@@ -1660,8 +1642,8 @@ local function SetupKillSoundDetector()
     local function HookStatValue(stat)
         if not stat or not (stat:IsA("IntValue") or stat:IsA("NumberValue")) then return end
         if not KILL_STAT_NAMES[string.lower(stat.Name)] then return end
-        if stat:GetAttribute("RoxhubKOHooked") then return end
-        stat:SetAttribute("RoxhubKOHooked", true)
+        if stat:GetAttribute("NaviKOHooked") then return end
+        stat:SetAttribute("NaviKOHooked", true)
         local lastVal = stat.Value
         stat:GetPropertyChangedSignal("Value"):Connect(function()
             if stat.Value > lastVal then TryPlayKillSound() end
