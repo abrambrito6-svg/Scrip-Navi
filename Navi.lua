@@ -56,15 +56,15 @@ task.spawn(function()
         tweenIn:Play()
     end
 end)
-local Home = NaviHub:Tab({ Title = "Home", Icon = "house" })
-local Aimbot = NaviHub:Tab({ Title = "Aimbot", Icon = "crosshair" })
-local Visuales = NaviHub:Tab({ Title = "Visuales", Icon = "eye" })
-local Movimiento = NaviHub:Tab({ Title = "Movimiento", Icon = "person-standing" })
-local Animaciones = NaviHub:Tab({ Title = "Animaciones", Icon = "footprints" })
-local AutoFarm = NaviHub:Tab({ Title = "Auto Farm", Icon = "coins" })
-local AutoKills = NaviHub:Tab({ Title = "Auto Kills", Icon = "skull" })
-local Settings = NaviHub:Tab({ Title = 
-"Settings", Icon = "settings" })
+local Home = NaviHub:Tab({ Title = "𝑯𝒐𝒎𝒆", Icon = "house" })
+local Aimbot = NaviHub:Tab({ Title = "𝑨𝒊𝒎𝒃𝒐𝒕", Icon = "crosshair" })
+local Visuales = NaviHub:Tab({ Title = "𝑽𝒊𝒔𝒖𝒂𝒍𝒆𝒔", Icon = "eye" })
+local Movimiento = NaviHub:Tab({ Title = "𝑴𝒐𝒗𝒊𝒎𝒊𝒆𝒏𝒕𝒐", Icon = "person-standing" })
+local Animaciones = NaviHub:Tab({ Title = "𝑨𝒏𝒊𝒎𝒂𝒄𝒊𝒐𝒏𝒆𝒔", Icon = "footprints" })
+local AutoFarm = NaviHub:Tab({ Title = "𝑨𝒖𝒕𝒐 𝑭𝒂𝒓𝒎", Icon = "coins" })
+local AutoKills = NaviHub:Tab({ Title = "𝑨𝒖𝒕𝒐 𝑲𝒊𝒍𝒍𝒔", Icon = "skull" })
+local Settings = NaviHub:Tab({ Title = "𝑺𝒆𝒕𝒕𝒊𝒏𝒈𝒔", Icon = "settings" })
+
 Settings:Section({ Title = "Settings", Icon = "settings" })
 local reviewText = ""
 Settings:Input({
@@ -77,7 +77,7 @@ Settings:Button({
     Title = "ENVIAR COMENTARIO",
     Callback = function()
         local HttpService = game:GetService("HttpService")
-        local webhookUrl = "https://discord.com/api/webhooks/1570289852589805758/Kirv7QFS1IulSNGCBdrFx99IvyZ1eJt-aQ_3zqaNd_dlCUk0AI50fkUmaXfq93SH_vj7"
+        local webhookUrl = "https://discord.com/api/webhooks/1570289852589805758/Kirv7QFS1IulSNGCBdrFx99IvyZ1eJt-aQ_3zqaNd_dlCUk0AI50fkUmaXfq9_vj7"
         local data = { username = "Navi", embeds = {{ title = "NUEVO COMENTARIO", description = reviewText, fields = {{name="USER", value=game.Players.LocalPlayer.Name}} }} }
         local req = request or http_request or (syn and syn.request)
         if req then req({ Url = webhookUrl, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data) }) end
