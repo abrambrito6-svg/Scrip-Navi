@@ -1602,10 +1602,10 @@ local KillSounds = {
     { Name = "DOMIDIOS VOLVÍ",         Id = "75227901457581" },
     { Name = "BOYKA APLICACIÓN",         Id = "74574513441326" },
     { Name = "AGÁRRATE DOMIDIOS",        Id = "132837271823305" },
-    { Name = "MAMBO",    Id =  "131928826207735" },
+    { Name = "Navi",    Id =  "140267097817784" },
     { Name = "SUAVE SUAVE",         Id = "107166596193919" },
 
-    { Name = "ESTRELLA",          Id = "109296938403067" },
+    { Name = "ESTRELLA",          Id = "6325779988" },
 
 }
 
