@@ -10,10 +10,10 @@ NaviUI:CreateWindow({
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://98346076228561",
+    Background = "rbxassetid://126573191582738",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
-        Title = "OPEN Onyx By Navi",
+        Title = "OPEN Onyx",
         Icon = "swords",
         CornerRadius = UDim.new(0, 14),
         StrokeThickness = 1.1,
@@ -25,7 +25,7 @@ NaviUI:CreateWindow({
     Topbar = { Height = 44, ButtonsType = "Default" }
 })
 NaviHub:SetSize(UDim2.fromOffset(580, 460))
-NaviUI:SetTheme("Dark")
+NaviUI:SetTheme("Violet")
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
     local CoreGui = game:GetService("CoreGui")
@@ -63,10 +63,111 @@ local Movimiento = NaviHub:Tab({ Title = "Movimiento", Icon = "person-standing" 
 local Animaciones = NaviHub:Tab({ Title = "Animaciones", Icon = "footprints" })
 local AutoFarm = NaviHub:Tab({ Title = "Auto Farm", Icon = "coins" })
 local AutoKills = NaviHub:Tab({ Title = "Auto Kills", Icon = "skull" })
-local Settings = NaviHub:Tab({ Title =
-"Settings", Icon = "settings" })
-Settings:Section({ Title = "Settings", Icon = "settings" })
 
+-- ========== AUTO FARM (contenido real) ==========
+AutoFarm:Section({ Title = "Auto Farm", Icon = "coins", Opened = true })
+
+local autoFarmEnabled = false
+local autoFarmSpeed = 22
+local autoCollectCoins = false
+
+AutoFarm:Toggle({
+    Title = "FARM AUTO",
+    Icon = "zap",
+    Default = false,
+    Callback = function(v)
+        autoFarmEnabled = v
+        if v then
+            task.spawn(function()
+                while autoFarmEnabled do
+                    if estaEnLobby and estaEnLobby() then
+                        task.wait(1)
+                        continue
+                    end
+                    local char = LP.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if not hrp or not hum or hum.Health <= 0 then
+                        task.wait(0.4)
+                        continue
+                    end
+
+                    -- Buscar enemigo más cercano válido
+                    local closest, dist = nil, 9999
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= LP and esEnemigoValido and esEnemigoValido(p) and p.Character then
+                            local ehrp = p.Character:FindFirstChild("HumanoidRootPart")
+                            if ehrp then
+                                local d = (ehrp.Position - hrp.Position).Magnitude
+                                if d < dist then
+                                    dist = d
+                                    closest = ehrp
+                                end
+                            end
+                        end
+                    end
+
+                    if closest then
+                        local dir = (closest.Position - hrp.Position)
+                        dir = Vector3.new(dir.X, 0, dir.Z)
+                        if dir.Magnitude > 4 then
+                            hum:MoveTo(hrp.Position + dir.Unit * math.min(dir.Magnitude, 12))
+                            hum.WalkSpeed = autoFarmSpeed
+                        end
+                    end
+                    task.wait(0.18)
+                end
+                -- restaurar walkspeed al desactivar
+                local char = LP.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.WalkSpeed = 16 end
+            end)
+        end
+    end
+})
+
+AutoFarm:Slider({
+    Title = "VELOCIDAD FARM",
+    Icon = "gauge",
+    Value = { Min = 16, Max = 40, Default = 22 },
+    Callback = function(v) autoFarmSpeed = v end
+})
+
+AutoFarm:Toggle({
+    Title = "AUTO COLLECT COINS",
+    Icon = "coins",
+    Default = false,
+    Callback = function(v)
+        autoCollectCoins = v
+        if v then
+            task.spawn(function()
+                while autoCollectCoins do
+                    pcall(function()
+                        for _, obj in ipairs(workspace:GetDescendants()) do
+                            if obj:IsA("BasePart") and (obj.Name:lower():find("coin") or obj.Name:lower():find("cash") or obj.Name:lower():find("money") or obj.Name:lower():find("orb")) then
+                                local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                                if hrp and (obj.Position - hrp.Position).Magnitude < 80 then
+                                    pcall(function()
+                                        firetouchinterest(hrp, obj, 0)
+                                        task.wait()
+                                        firetouchinterest(hrp, obj, 1)
+                                    end)
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.6)
+                end
+            end)
+        end
+    end
+})
+
+AutoFarm:Paragraph({
+    Title = "Info",
+    Desc = "Farm Auto se mueve hacia el enemigo más cercano. Auto Collect intenta tocar monedas/orbs cercanos si existen en el mapa."
+})
+local Settings = NaviHub:Tab({ Title = "Settings", Icon = "settings" })
 Settings:Section({ Title = "Settings", Icon = "settings" })
 local reviewText = ""
 Settings:Input({
@@ -79,7 +180,7 @@ Settings:Button({
     Title = "ENVIAR COMENTARIO",
     Callback = function()
         local HttpService = game:GetService("HttpService")
-        local webhookUrl = "https://discord.com/api/webhooks/1570289852589805758/Kirv7QFS1IulSNGCBdrFx99IvyZ1eJt-aQ_3zqaNd_dlCUk0AI50fkUmaXfq9_vj7"
+        local webhookUrl = "https://discord.com/api/webhooks/1570289852589805758/Kirv7QFS1IulSNGCBdrFx99IvyZ1eJt-aQ_3zqaNd_dlCUk0AI50fkUmaXfq93SH_vj7"
         local data = { username = "Navi", embeds = {{ title = "NUEVO COMENTARIO", description = reviewText, fields = {{name="USER", value=game.Players.LocalPlayer.Name}} }} }
         local req = request or http_request or (syn and syn.request)
         if req then req({ Url = webhookUrl, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data) }) end
@@ -513,7 +614,7 @@ Settings:Dropdown({
     Title = "CAMBIAR TEMA",
     Icon = "palette",
     Values = {"Dark", "Light", "Midnight", "Red", "Rose", "Indigo", "Amber", "Violet", "Emerald"},
-    Value = "Dark",
+    Value = "Violet",
     Callback = function(v)
         NaviUI:SetTheme(v)
     end
@@ -575,6 +676,9 @@ local espEnabled = false
 local espColor = Color3.fromRGB(255, 0, 0)
 local activeESPs = {}
 local MAX_ESP_DISTANCE = 1500
+local skeletonESPEnabled = false
+local skeletonESPColor = Color3.fromRGB(0, 255, 170)
+local activeSkeletons = {}
 local serverDeadCharacters = setmetatable({}, { __mode = "k" })
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Navi"
@@ -845,6 +949,110 @@ Aimbot:Toggle({ Title = "SILENT AIM [FOV]", Value = false, Callback = function(v
 Aimbot:Toggle({ Title = "MOSTRAR FOV", Value = false, Callback = function(v) fovVisiblePreference = v end })
 Aimbot:Slider({ Title = "TAMAÑO DEL FOV", Value = { Min = 10, Max = 800, Default = 120 }, Callback = function(v) fovRadius = v end })
 Aimbot:Toggle({ Title = "AUTO SACAR ARMA", Value = false, Callback = function(v) autoSacarArmaEnabled = v end })
+
+-- ========== AUTO SHOT FAKED (disimulado) ==========
+local autoShotFakedEnabled = false
+local fakedShotState = 0 -- 0 = idle, 1 = fake aim, 2 = real shot
+local fakedOffset = Vector3.new(2.5, 1.2, 0)
+
+Aimbot:Section({ Title = "AUTO SHOT FAKED", Icon = "crosshair" })
+Aimbot:Toggle({
+    Title = "AUTO SHOT FAKED",
+    Icon = "eye-off",
+    Default = false,
+    Callback = function(v)
+        autoShotFakedEnabled = v
+        fakedShotState = 0
+        if not v then
+            getgenv().NaviTargetPart = nil
+        end
+    end
+})
+Aimbot:Paragraph({
+    Title = "Cómo funciona",
+    Desc = "Primero apunta un poco lejos del enemigo (parece legítimo) y en el siguiente disparo corrige al objetivo real. Más disimulado."
+})
+
+task.spawn(function()
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    while task.wait(0.12) do
+        if not autoShotFakedEnabled or estaEnLobby() or not IsInMatchStrict() then
+            fakedShotState = 0
+            continue
+        end
+        local char = LP.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
+        local arma = char:FindFirstChildOfClass("Tool")
+        if not arma or not arma:FindFirstChild("Handle") or esCuchillo(arma) then
+            getgenv().NaviTargetPart = nil
+            continue
+        end
+
+        local closestPart, closestDist = nil, math.huge
+        local myPos = char.HumanoidRootPart.Position
+        local headPos = char:FindFirstChild("Head") and char.Head.Position or myPos
+
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LP and esEnemigoValido(p) and p.Character then
+                local enemyHum = p.Character:FindFirstChildOfClass("Humanoid")
+                if enemyHum and enemyHum.Health > 0 then
+                    local targetPart = p.Character:FindFirstChild("Head") or p.Character:FindFirstChild("HumanoidRootPart")
+                    if targetPart then
+                        params.FilterDescendantsInstances = {char, p.Character}
+                        if not workspace:Raycast(headPos, targetPart.Position - headPos, params) then
+                            local d = (targetPart.Position - myPos).Magnitude
+                            if d < closestDist then
+                                closestDist = d
+                                closestPart = targetPart
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        if closestPart then
+            if fakedShotState == 0 or fakedShotState == 2 then
+                -- Fake aim: offset position
+                local fakePart = Instance.new("Part")
+                fakePart.Name = "NaviFakeTarget"
+                fakePart.Size = Vector3.new(0.2, 0.2, 0.2)
+                fakePart.Transparency = 1
+                fakePart.CanCollide = false
+                fakePart.Anchored = true
+                fakePart.CFrame = closestPart.CFrame * CFrame.new(fakedOffset)
+                fakePart.Parent = workspace
+                getgenv().NaviTargetPart = fakePart
+                fakedShotState = 1
+                pcall(function()
+                    arma:Activate()
+                    task.delay(0.04, function()
+                        if arma.Parent == char then arma:Deactivate() end
+                        if fakePart and fakePart.Parent then fakePart:Destroy() end
+                    end)
+                end)
+                task.wait(0.15)
+            else
+                -- Real shot
+                getgenv().NaviTargetPart = closestPart
+                fakedShotState = 2
+                pcall(function()
+                    arma:Activate()
+                    task.delay(0.05, function()
+                        if arma.Parent == char then arma:Deactivate() end
+                    end)
+                end)
+                task.wait(0.22)
+                fakedShotState = 0
+            end
+        else
+            getgenv().NaviTargetPart = nil
+            fakedShotState = 0
+        end
+    end
+end)
+
 Movimiento:Section({ Title = "Movimiento", Icon = "zap", Opened = true })
 Movimiento:Toggle({
     Title = "INVISIBLE V6",
@@ -856,7 +1064,7 @@ Movimiento:Toggle({
         local DISTANCIA = 50
         local TRANSPARENCIA = 0.6
 
-        local function RoxHub_SetInvisible(char, invisible)
+        local function Navi_SetInvisible(char, invisible)
             if not char then return end
             for _, v in pairs(char:GetDescendants()) do
                 if v:IsA("BasePart") then
@@ -875,13 +1083,13 @@ Movimiento:Toggle({
             if _G.InvisCon then _G.InvisCon:Disconnect() _G.InvisCon = nil end
             _G.InvisActive = false
             if lp.Character then
-                RoxHub_SetInvisible(lp.Character, false)
+                Navi_SetInvisible(lp.Character, false)
             end
             return
         end
 
         _G.InvisActive = true
-        RoxHub_SetInvisible(lp.Character, true)
+        Navi_SetInvisible(lp.Character, true)
 
         if _G.InvisCon then _G.InvisCon:Disconnect() end
         _G.InvisCon = RunService.Heartbeat:Connect(function()
@@ -1229,8 +1437,119 @@ end
 for _, p in ipairs(Players:GetPlayers()) do if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end
 Players.PlayerAdded:Connect(function(p) if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end)
 Visuales:Section({ Title = "Visuales", Icon = "eye", Opened = true })
-Visuales:Toggle({ Title = "ESP HIGHILGHT", Value = false, Callback = function(s) espEnabled = s if not s then for _, p in pairs(Players:GetPlayers()) do local h = espFolder:FindFirstChild(p.Name .. "Navi") if h then h:Destroy() end activeESPs[p] = nil end end end })
+Visuales:Toggle({ Title = "ESP HIGHLIGHT", Value = false, Callback = function(s) espEnabled = s if not s then for _, p in pairs(Players:GetPlayers()) do local h = espFolder:FindFirstChild(p.Name .. "Navi") if h then h:Destroy() end activeESPs[p] = nil end end end })
 Visuales:Colorpicker({ Title = "COLOR DEL ESP", Default = Color3.fromRGB(255, 0, 0), Callback = function(c) espColor = c for _, v in pairs(activeESPs) do if v.Highlight then v.Highlight.FillColor = c end end end })
+
+-- ========== ESP ESQUELETO ==========
+local function clearSkeleton(player)
+    if activeSkeletons[player] then
+        for _, obj in pairs(activeSkeletons[player]) do
+            if obj and obj.Parent then pcall(function() obj:Destroy() end) end
+        end
+        activeSkeletons[player] = nil
+    end
+end
+
+local bonePairs = {
+    {"Head", "UpperTorso"}, {"Head", "Torso"},
+    {"UpperTorso", "LowerTorso"}, {"Torso", "HumanoidRootPart"},
+    {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
+    {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
+    {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
+    {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"},
+    -- R6 fallback
+    {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"},
+}
+
+local function createSkeletonFor(player, char)
+    clearSkeleton(player)
+    local parts = {}
+    activeSkeletons[player] = parts
+
+    local function getPart(name)
+        return char:FindFirstChild(name)
+    end
+
+    for _, pair in ipairs(bonePairs) do
+        local p0 = getPart(pair[1])
+        local p1 = getPart(pair[2])
+        if p0 and p1 and p0:IsA("BasePart") and p1:IsA("BasePart") then
+            local att0 = Instance.new("Attachment")
+            att0.Name = "NaviSkelAtt0"
+            att0.Parent = p0
+            local att1 = Instance.new("Attachment")
+            att1.Name = "NaviSkelAtt1"
+            att1.Parent = p1
+
+            local beam = Instance.new("Beam")
+            beam.Name = "NaviSkeleton"
+            beam.Attachment0 = att0
+            beam.Attachment1 = att1
+            beam.Color = ColorSequence.new(skeletonESPColor)
+            beam.Width0 = 0.12
+            beam.Width1 = 0.12
+            beam.FaceCamera = true
+            beam.LightEmission = 1
+            beam.LightInfluence = 0
+            beam.Transparency = NumberSequence.new(0.15)
+            beam.Parent = espFolder
+            table.insert(parts, beam)
+            table.insert(parts, att0)
+            table.insert(parts, att1)
+        end
+    end
+end
+
+Visuales:Toggle({
+    Title = "ESP ESQUELETO",
+    Icon = "bone",
+    Default = false,
+    Callback = function(v)
+        skeletonESPEnabled = v
+        if not v then
+            for p, _ in pairs(activeSkeletons) do clearSkeleton(p) end
+        end
+    end
+})
+Visuales:Colorpicker({
+    Title = "COLOR ESQUELETO",
+    Default = Color3.fromRGB(0, 255, 170),
+    Callback = function(c)
+        skeletonESPColor = c
+        for _, list in pairs(activeSkeletons) do
+            for _, obj in pairs(list) do
+                if obj:IsA("Beam") then
+                    obj.Color = ColorSequence.new(c)
+                end
+            end
+        end
+    end
+})
+
+task.spawn(function()
+    while task.wait(0.25) do
+        if skeletonESPEnabled and IsInMatchStrict() then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and esEnemigoValido(p) then
+                    local char = p.Character
+                    local dead = char and serverDeadCharacters[char] == true
+                    if char and not dead and char:FindFirstChild("HumanoidRootPart") then
+                        if not activeSkeletons[p] or (activeSkeletons[p] and not activeSkeletons[p][1]) then
+                            createSkeletonFor(p, char)
+                        end
+                    else
+                        clearSkeleton(p)
+                    end
+                else
+                    clearSkeleton(p)
+                end
+            end
+        else
+            for p, _ in pairs(activeSkeletons) do clearSkeleton(p) end
+        end
+    end
+end)
+
 task.spawn(function()
     while task.wait(0.2) do
         if espEnabled and IsInMatchStrict() then
@@ -1285,7 +1604,7 @@ RunService.RenderStepped:Connect(function()
         FOVCircle.Visible = false
     end
 end)
-Players.PlayerRemoving:Connect(function(p) cleanESP(p) end)
+Players.PlayerRemoving:Connect(function(p) cleanESP(p) clearSkeleton(p) end)
 local AllPacks = {
     Astronaut = { idle1= "rbxassetid://891621366", idle2="rbxassetid://891633237", walk="rbxassetid://891667138", run="rbxassetid://891636393", jump="rbxassetid://891627522", fall="rbxassetid://891617961" },
     Bubbly = { idle1="rbxassetid://910004836", idle2="rbxassetid://910009958", walk="rbxassetid://910034870", run="rbxassetid://910025107", jump="rbxassetid://910016857", fall="rbxassetid://910001910" },
@@ -1602,10 +1921,10 @@ local KillSounds = {
     { Name = "DOMIDIOS VOLVÍ",         Id = "75227901457581" },
     { Name = "BOYKA APLICACIÓN",         Id = "74574513441326" },
     { Name = "AGÁRRATE DOMIDIOS",        Id = "132837271823305" },
-    { Name = "Navi",    Id =  "140267097817784" },
+    { Name = "MAMBO",    Id =  "131928826207735" },
     { Name = "SUAVE SUAVE",         Id = "107166596193919" },
 
-    { Name = "ESTRELLA",          Id = "6325779988" },
+    { Name = "ESTRELLA",          Id = "109296938403067" },
 
 }
 
