@@ -10,7 +10,7 @@ NaviUI:CreateWindow({
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://126573191582738",
+    Background = "rbxassetid://96999691513454",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
         Title = "OPEN Onyx",
