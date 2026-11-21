@@ -1,5 +1,5 @@
 
-local _version = "1.6.66"
+local _version = "1.8.35"
 local NaviUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
 local NaviHub =
 NaviUI:CreateWindow({
@@ -10,7 +10,7 @@ NaviUI:CreateWindow({
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://96999691513454",
+    Background = "rbxassetid://86091313378854",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
         Title = "OPEN Onyx",
@@ -25,7 +25,20 @@ NaviUI:CreateWindow({
     Topbar = { Height = 44, ButtonsType = "Default" }
 })
 NaviHub:SetSize(UDim2.fromOffset(580, 460))
-NaviUI:SetTheme("Violet")
+NaviUI:SetTheme("Red")
+
+-- Notificaciones globales
+local function Notify(title, content, duration)
+    duration = duration or 2.5
+    pcall(function()
+        NaviUI:Notify({
+            Title = title or "Navi Hub",
+            Content = content or "",
+            Duration = duration
+        })
+    end)
+end
+
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
     local CoreGui = game:GetService("CoreGui")
@@ -77,6 +90,7 @@ AutoFarm:Toggle({
     Default = false,
     Callback = function(v)
         autoFarmEnabled = v
+        Notify("Navi Hub", v and "Farm Auto ACTIVADO" or "Farm Auto DESACTIVADO")
         if v then
             task.spawn(function()
                 while autoFarmEnabled do
@@ -614,7 +628,7 @@ Settings:Dropdown({
     Title = "CAMBIAR TEMA",
     Icon = "palette",
     Values = {"Dark", "Light", "Midnight", "Red", "Rose", "Indigo", "Amber", "Violet", "Emerald"},
-    Value = "Violet",
+    Value = "Red",
     Callback = function(v)
         NaviUI:SetTheme(v)
     end
@@ -939,16 +953,35 @@ Aimbot:Toggle({
         autoShootEnabled = v
     end
 })
-Aimbot:Toggle({ Title = "AUTO SHOOT [NORMAL]", Value = false, Callback = function(v) autoShootEnabled = v if not v and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end })
-Aimbot:Toggle({ Title = "AUTO SHOOT [AGRESIVO]", Value = false, Callback = function(v) autoShootAgresivoEnabled = v if not v and not autoShootEnabled then getgenv().NaviTargetPart = nil end end })
+Aimbot:Toggle({ Title = "AUTO SHOOT [NORMAL]", Value = false, Callback = function(v) 
+    autoShootEnabled = v 
+    if not v and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
+    Notify("Navi Hub", v and "Auto Shoot Normal ACTIVADO" or "Auto Shoot Normal DESACTIVADO")
+end })
+Aimbot:Toggle({ Title = "AUTO SHOOT [AGRESIVO]", Value = false, Callback = function(v) 
+    autoShootAgresivoEnabled = v 
+    if not v and not autoShootEnabled then getgenv().NaviTargetPart = nil end 
+    Notify("Navi Hub", v and "Auto Shoot Agresivo ACTIVADO" or "Auto Shoot Agresivo DESACTIVADO")
+end })
 Aimbot:Dropdown({ Title = "TARGET PARTE", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) autoShootTargetPart = v end })
 Aimbot:Section({ Title = "SILENT AIM + FOV", Icon = "radar" })
-Aimbot:Toggle({ Title = "SILENT AIM", Value = false, Callback = function(v) silentAimManualEnabled = v if not v and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end })
+Aimbot:Toggle({ Title = "SILENT AIM", Value = false, Callback = function(v) 
+    silentAimManualEnabled = v 
+    if not v and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
+    Notify("Navi Hub", v and "Silent Aim ACTIVADO" or "Silent Aim DESACTIVADO")
+end })
 Aimbot:Dropdown({ Title = "SILENT TARGET", Values = {"Cabeza","Torso","Cuerpo Completo"}, Value = "Cabeza", Callback = function(v) silentAimTargetPart = v end })
-Aimbot:Toggle({ Title = "SILENT AIM [FOV]", Value = false, Callback = function(v) silentAimFovEnabled = v if not v and not silentAimManualEnabled and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end end })
+Aimbot:Toggle({ Title = "SILENT AIM [FOV]", Value = false, Callback = function(v) 
+    silentAimFovEnabled = v 
+    if not v and not silentAimManualEnabled and not autoShootEnabled and not autoShootAgresivoEnabled then getgenv().NaviTargetPart = nil end 
+    Notify("Navi Hub", v and "Silent Aim FOV ACTIVADO" or "Silent Aim FOV DESACTIVADO")
+end })
 Aimbot:Toggle({ Title = "MOSTRAR FOV", Value = false, Callback = function(v) fovVisiblePreference = v end })
 Aimbot:Slider({ Title = "TAMAÑO DEL FOV", Value = { Min = 10, Max = 800, Default = 120 }, Callback = function(v) fovRadius = v end })
-Aimbot:Toggle({ Title = "AUTO SACAR ARMA", Value = false, Callback = function(v) autoSacarArmaEnabled = v end })
+Aimbot:Toggle({ Title = "AUTO SACAR ARMA", Value = false, Callback = function(v) 
+    autoSacarArmaEnabled = v 
+    Notify("Navi Hub", v and "Auto Sacar Arma ACTIVADO" or "Auto Sacar Arma DESACTIVADO")
+end })
 
 -- ========== AUTO SHOT FAKED (disimulado) ==========
 local autoShotFakedEnabled = false
@@ -966,6 +999,7 @@ Aimbot:Toggle({
         if not v then
             getgenv().NaviTargetPart = nil
         end
+        Notify("Navi Hub", v and "Auto Shot Faked ACTIVADO" or "Auto Shot Faked DESACTIVADO")
     end
 })
 Aimbot:Paragraph({
@@ -1437,28 +1471,46 @@ end
 for _, p in ipairs(Players:GetPlayers()) do if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end
 Players.PlayerAdded:Connect(function(p) if p ~= LP then if p.Character then WatchServerDeath(p.Character) end p.CharacterAdded:Connect(function(c) WatchServerDeath(c) end) end end)
 Visuales:Section({ Title = "Visuales", Icon = "eye", Opened = true })
-Visuales:Toggle({ Title = "ESP HIGHLIGHT", Value = false, Callback = function(s) espEnabled = s if not s then for _, p in pairs(Players:GetPlayers()) do local h = espFolder:FindFirstChild(p.Name .. "Navi") if h then h:Destroy() end activeESPs[p] = nil end end end })
+Visuales:Toggle({ Title = "ESP HIGHLIGHT", Value = false, Callback = function(s) 
+    espEnabled = s 
+    if not s then 
+        for _, p in pairs(Players:GetPlayers()) do 
+            local h = espFolder:FindFirstChild(p.Name .. "Navi") 
+            if h then h:Destroy() end 
+            activeESPs[p] = nil 
+        end 
+    end 
+    Notify("Navi Hub", s and "ESP Highlight ACTIVADO" or "ESP Highlight DESACTIVADO")
+end })
 Visuales:Colorpicker({ Title = "COLOR DEL ESP", Default = Color3.fromRGB(255, 0, 0), Callback = function(c) espColor = c for _, v in pairs(activeESPs) do if v.Highlight then v.Highlight.FillColor = c end end end })
 
--- ========== ESP ESQUELETO ==========
+-- ========== ESP ESQUELETO (ARREGLADO) ==========
 local function clearSkeleton(player)
     if activeSkeletons[player] then
         for _, obj in pairs(activeSkeletons[player]) do
-            if obj and obj.Parent then pcall(function() obj:Destroy() end) end
+            if obj and obj.Parent then
+                pcall(function() obj:Destroy() end)
+            end
         end
         activeSkeletons[player] = nil
     end
 end
 
-local bonePairs = {
-    {"Head", "UpperTorso"}, {"Head", "Torso"},
-    {"UpperTorso", "LowerTorso"}, {"Torso", "HumanoidRootPart"},
+local bonePairsR15 = {
+    {"Head", "UpperTorso"},
+    {"UpperTorso", "LowerTorso"},
     {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
     {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
     {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
     {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"},
-    -- R6 fallback
-    {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"},
+}
+
+local bonePairsR6 = {
+    {"Head", "Torso"},
+    {"Torso", "Left Arm"},
+    {"Torso", "Right Arm"},
+    {"Torso", "Left Leg"},
+    {"Torso", "Right Leg"},
 }
 
 local function createSkeletonFor(player, char)
@@ -1466,19 +1518,19 @@ local function createSkeletonFor(player, char)
     local parts = {}
     activeSkeletons[player] = parts
 
-    local function getPart(name)
-        return char:FindFirstChild(name)
-    end
+    local isR15 = char:FindFirstChild("UpperTorso") ~= nil
+    local pairsToUse = isR15 and bonePairsR15 or bonePairsR6
 
-    for _, pair in ipairs(bonePairs) do
-        local p0 = getPart(pair[1])
-        local p1 = getPart(pair[2])
+    for _, pair in ipairs(pairsToUse) do
+        local p0 = char:FindFirstChild(pair[1])
+        local p1 = char:FindFirstChild(pair[2])
         if p0 and p1 and p0:IsA("BasePart") and p1:IsA("BasePart") then
             local att0 = Instance.new("Attachment")
-            att0.Name = "NaviSkelAtt0"
+            att0.Name = "NaviSkel0"
             att0.Parent = p0
+
             local att1 = Instance.new("Attachment")
-            att1.Name = "NaviSkelAtt1"
+            att1.Name = "NaviSkel1"
             att1.Parent = p1
 
             local beam = Instance.new("Beam")
@@ -1486,13 +1538,13 @@ local function createSkeletonFor(player, char)
             beam.Attachment0 = att0
             beam.Attachment1 = att1
             beam.Color = ColorSequence.new(skeletonESPColor)
-            beam.Width0 = 0.12
-            beam.Width1 = 0.12
+            beam.Width0 = 0.14
+            beam.Width1 = 0.14
             beam.FaceCamera = true
             beam.LightEmission = 1
             beam.LightInfluence = 0
-            beam.Transparency = NumberSequence.new(0.15)
-            beam.Parent = espFolder
+            beam.Transparency = NumberSequence.new(0.1)
+            beam.Parent = char -- IMPORTANTE: parent al character para que se vea en el mundo
             table.insert(parts, beam)
             table.insert(parts, att0)
             table.insert(parts, att1)
@@ -1507,8 +1559,18 @@ Visuales:Toggle({
     Callback = function(v)
         skeletonESPEnabled = v
         if not v then
-            for p, _ in pairs(activeSkeletons) do clearSkeleton(p) end
+            for p, _ in pairs(activeSkeletons) do
+                clearSkeleton(p)
+            end
         end
+        -- Notificación
+        pcall(function()
+            NaviUI:Notify({
+                Title = "Navi Hub",
+                Content = v and "ESP Esqueleto ACTIVADO" or "ESP Esqueleto DESACTIVADO",
+                Duration = 2.5
+            })
+        end)
     end
 })
 Visuales:Colorpicker({
@@ -1527,25 +1589,35 @@ Visuales:Colorpicker({
 })
 
 task.spawn(function()
-    while task.wait(0.25) do
-        if skeletonESPEnabled and IsInMatchStrict() then
+    while task.wait(0.3) do
+        if skeletonESPEnabled then
             for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LP and esEnemigoValido(p) then
+                if p ~= LP then
                     local char = p.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local dead = char and serverDeadCharacters[char] == true
-                    if char and not dead and char:FindFirstChild("HumanoidRootPart") then
-                        if not activeSkeletons[p] or (activeSkeletons[p] and not activeSkeletons[p][1]) then
-                            createSkeletonFor(p, char)
+                    if char and hum and hum.Health > 0 and not dead and char:FindFirstChild("HumanoidRootPart") then
+                        -- Solo enemigos si la función existe, si no muestra a todos
+                        local isEnemyOk = true
+                        if esEnemigoValido then
+                            isEnemyOk = esEnemigoValido(p)
+                        end
+                        if isEnemyOk then
+                            if not activeSkeletons[p] then
+                                createSkeletonFor(p, char)
+                            end
+                        else
+                            clearSkeleton(p)
                         end
                     else
                         clearSkeleton(p)
                     end
-                else
-                    clearSkeleton(p)
                 end
             end
         else
-            for p, _ in pairs(activeSkeletons) do clearSkeleton(p) end
+            for p, _ in pairs(activeSkeletons) do
+                clearSkeleton(p)
+            end
         end
     end
 end)
