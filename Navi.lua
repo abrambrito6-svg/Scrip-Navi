@@ -1,6 +1,5 @@
 --[[ =====================================================================
-     NAVI ONYX · v3.0
-     Interfaz de dos columnas · minimizar · config persistente
+     NAVI ONYX · v3.1
      ===================================================================== ]]
 
 if getgenv().NaviCleanup then
@@ -27,7 +26,6 @@ local function getCamera()
 	return workspace.CurrentCamera
 end
 
---=============================== PALETA ===============================
 local C = {
 	bg1     = Color3.fromRGB(26, 3, 6),
 	bg2     = Color3.fromRGB(74, 7, 12),
@@ -70,7 +68,6 @@ local function tw(obj, dur, props)
 	return t
 end
 
---=============================== CONFIG ===============================
 local CONFIG_DIR = "Navi_Onyx"
 local CONFIG_FILE = CONFIG_DIR .. "/config.json"
 local flags = {}
@@ -132,7 +129,6 @@ local function cargarConfig()
 	return aplicados
 end
 
---=============================== GUI RAIZ ===============================
 local gui = new("ScreenGui", {
 	Name = "Navi",
 	ResetOnSpawn = false,
@@ -171,7 +167,6 @@ new("UIGradient", {
 	Transparency = NumberSequence.new(0.1, 0.3),
 }, main)
 
--- FONDO (no se toca)
 local bgImage = new("ImageLabel", {
 	Name = "Fondo",
 	Size = UDim2.fromScale(1, 1),
@@ -202,7 +197,6 @@ task.spawn(function()
 	end
 end)
 
---=========================== NOTIFICACIONES ===========================
 local notifyHolder = new("Frame", {
 	Size = UDim2.new(0, 258, 1, -24),
 	Position = UDim2.new(1, -272, 0, 12),
@@ -251,7 +245,6 @@ local function notify(texto, encendido)
 	end)
 end
 
---=============================== HEADER ===============================
 local header = new("Frame", {
 	Size = UDim2.new(1, 0, 0, 54),
 	BackgroundColor3 = C.panel,
@@ -320,7 +313,7 @@ new("TextLabel", {
 	TextSize = 11,
 	TextColor3 = C.dim,
 	TextXAlignment = Enum.TextXAlignment.Left,
-	Text = "VER: 3.0",
+	Text = "VER: 3.1",
 }, header)
 
 task.spawn(function()
@@ -373,10 +366,9 @@ local closeBtn = new("TextButton", {
 	Text = "×",
 }, header)
 
---======================= BOTÓN FLOTANTE REABRIR =======================
 local reopen = new("TextButton", {
 	Size = UDim2.fromOffset(44, 44),
-	Position = UDim2.fromOffset(24, 24),
+	Position = UDim2.fromOffset(24, 130),
 	BackgroundColor3 = C.accent,
 	BorderSizePixel = 0,
 	Font = FB,
@@ -429,7 +421,6 @@ do
 	end)
 end
 
---=============================== CUERPO ===============================
 local body = new("Frame", {
 	Size = UDim2.new(1, 0, 1, -80),
 	Position = UDim2.new(0, 0, 0, 54),
@@ -470,11 +461,10 @@ local footer = new("TextLabel", {
 	Font = FM,
 	TextSize = 11,
 	TextColor3 = C.dim,
-	Text = "Navi Onyx v3.0",
+	Text = "Navi Onyx v3.1",
 }, main)
 new("UIStroke", { Color = C.stroke, Transparency = 0.65 }, footer)
 
---============================= COMPONENTES =============================
 local tabs = {}
 local activeTab
 
@@ -560,7 +550,7 @@ local function addRow(tab, parent, titulo, alto)
 	}, parent)
 	new("UICorner", { CornerRadius = UDim.new(0, 6) }, row)
 	local lbl = new("TextLabel", {
-		Size = UDim.new(1, -96),
+		Size = UDim2.new(1, -96, 1, 0),
 		BackgroundTransparency = 1,
 		Font = FM,
 		TextSize = 12.5,
@@ -611,7 +601,7 @@ local function addSection(tab, titulo)
 	}, card)
 	tab.rows[#tab.rows + 1] = { row = head, nombre = titulo }
 
-	local linea = new("Frame", {
+	new("Frame", {
 		Size = UDim2.new(1, 0, 0, 1),
 		BackgroundColor3 = C.stroke,
 		BackgroundTransparency = 0.4,
@@ -873,7 +863,7 @@ end
 
 local function addInput(tab, parent, o)
 	local row, lbl = addRow(tab, parent, o.Title, 32)
-	lbl.Size = UDim.new(1, -150)
+	lbl.Size = UDim2.new(1, -150, 1, 0)
 	local box = new("TextBox", {
 		Size = UDim2.fromOffset(134, 22),
 		Position = UDim2.new(1, -140, 0.5, -11),
@@ -960,7 +950,6 @@ searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	aplicarBusqueda(searchBox.Text)
 end)
 
---============================= ARRASTRE =============================
 do
 	local arrastrando = false
 	local inicio, inicioPos
@@ -987,7 +976,6 @@ do
 	end)
 end
 
---============================== HELPERS ==============================
 local function getExecutor()
 	local ok, nombre = pcall(function()
 		return identifyexecutor()
@@ -1171,7 +1159,6 @@ local function getCercano(radio, nombreParte)
 	return mejor
 end
 
---======================== ESTADO DE OBJETIVO ========================
 local PRIORIDAD = { telekill = 0, autoShoot = 1, faked = 2, silent = 3 }
 local slots = {}
 
@@ -1192,7 +1179,6 @@ local function setTarget(slot, parte)
 	resolverObjetivo()
 end
 
---============================== PESTAÑAS ==============================
 local Home = makeTab("Home", "◆")
 local Aimbot = makeTab("Aimbot", "◈")
 local Visuales = makeTab("Visuales", "◉")
@@ -1225,7 +1211,6 @@ do
 	addParagraph(Home, s3, "La configuración se guarda sola y se restaura al ejecutar de nuevo.")
 end
 
---=============================== AIMBOT ===============================
 local aimbotEnabled = false
 local silentAimEnabled = false
 local silentAimFov = false
@@ -1290,7 +1275,6 @@ RunService.RenderStepped:Connect(function()
 	fovCircle.Transparency = 0.35
 end)
 
---=========================== VISUALES / ESP ===========================
 local espEnabled = false
 local skeletonEnabled = false
 local SkeletonColor = Color3.fromRGB(255, 40, 50)
@@ -1551,7 +1535,6 @@ do
 	end)
 end
 
---============================= MOVIMIENTO =============================
 local spinOn = false
 local spinVel = 12
 local zigzagOn = false
@@ -1670,7 +1653,6 @@ task.spawn(function()
 	end
 end)
 
---============================= ANIMACIONES ============================
 local packs = {
 	["Ninja"] = { idle = 656117400, walk = 656121766, run = 656118852, jump = 656117878, fall = 656115606 },
 	["Zombie"] = { idle = 3489171152, walk = 3489187502, run = 3489176752, jump = 3489181340, fall = 3489177666 },
@@ -1723,7 +1705,6 @@ do
 	end })
 end
 
---============================== AUTO FARM =============================
 local farmOn = false
 local farmRadio = 60
 local farmVel = 22
@@ -1851,7 +1832,6 @@ task.spawn(function()
 	end
 end)
 
---============================== AUTO KILLS ============================
 local atrasOn = false
 local atrasActivo = false
 
@@ -1905,7 +1885,6 @@ task.spawn(function()
 	end
 end)
 
---============================ SONIDO DE KILL ==========================
 local killSounds = {
 	["ES HACKER"] = "rbxassetid://131961136",
 	["ONICHAAAN"] = "rbxassetid://1837835458",
@@ -1968,7 +1947,6 @@ do
 	LP.CharacterAdded:Connect(vigilar)
 end
 
---=============================== SETTINGS =============================
 do
 	local s = addSection(Settings, "RENDIMIENTO")
 	addToggle(Settings, s, { Title = "FPS boost", Flag = "fpsboost", Default = false, Callback = function(v)
@@ -2051,7 +2029,6 @@ do
 	addParagraph(Settings, s4, "El botón N flotante reabre el panel sin reejecutar.")
 end
 
---============================== SILENT AIM ============================
 do
 	if type(hookmetamethod) == "function" and type(getnamecallmethod) == "function" and type(checkcaller) == "function" then
 		local viejo
@@ -2103,7 +2080,6 @@ do
 	end
 end
 
---============================= LOOP DE AIM ============================
 local armaActual
 local ultimoDisparo = 0
 
@@ -2205,11 +2181,10 @@ getgenv().NaviCleanup = function()
 end
 
 tabs[1].btn.MouseButton1Click:Fire()
-notify("Navi Onyx v3 cargado", true)
+notify("Navi Onyx v3.1 cargado", true)
 
 end
 
---============================= EJECUCIÓN =============================
 local ok, err = xpcall(build, function(e)
 	return tostring(e) .. "\n" .. debug.traceback()
 end)
@@ -2221,16 +2196,32 @@ if not ok then
 	fallback.ResetOnSpawn = false
 	fallback.DisplayOrder = 999
 	fallback.Parent = LP:WaitForChild("PlayerGui")
+
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 560, 0, 150)
+	frame.Size = UDim2.new(0, 580, 0, 170)
 	frame.Position = UDim2.fromScale(0.5, 0.2)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	frame.BackgroundColor3 = Color3.fromRGB(25, 3, 6)
 	frame.BorderSizePixel = 0
 	frame.Parent = fallback
+
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = frame
+
+	local cerrar = Instance.new("TextButton")
+	cerrar.Size = UDim2.fromOffset(24, 24)
+	cerrar.Position = UDim2.new(1, -30, 0, 6)
+	cerrar.BackgroundTransparency = 1
+	cerrar.Font = Enum.Font.GothamBold
+	cerrar.TextSize = 16
+	cerrar.TextColor3 = Color3.fromRGB(255, 120, 120)
+	cerrar.Text = "×"
+	cerrar.Parent = frame
+	cerrar.MouseButton1Click:Connect(function()
+		fallback:Destroy()
+	end)
+
 	local lbl = Instance.new("TextLabel")
 	lbl.Size = UDim2.new(1, -20, 1, -20)
 	lbl.Position = UDim2.fromOffset(10, 10)
@@ -2244,18 +2235,5 @@ if not ok then
 	lbl.Text = "Navi Onyx: error al construir la interfaz\n\n" .. tostring(err)
 	lbl.Parent = frame
 else
-	local aplicados = 0
-	pcall(function()
-		aplicados = cargarConfig()
-	end)
-	if aplicados > 0 then
-		task.wait(0.2)
-		if gui.Parent then
-			for _, child in ipairs(gui:GetChildren()) do
-				if child:IsA("Frame") and child.Name == "notifyHolder" then
-					break
-				end
-			end
-		end
-	end
+	pcall(cargarConfig)
 end
