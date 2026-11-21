@@ -1,5 +1,5 @@
 
-local _version = "1.8.35"
+local _version = "1.6.66"
 local NaviUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
 local NaviHub =
 NaviUI:CreateWindow({
@@ -10,7 +10,7 @@ NaviUI:CreateWindow({
     Transparent = false,
     NewElements = true,
     HideSearchBar = false,
-    Background = "rbxassetid://86091313378854",
+    Background = "rbxassetid://860913133788",
     BackgroundImageTransparency = 0.55,
     OpenButton = {
         Title = "OPEN Onyx",
@@ -25,7 +25,7 @@ NaviUI:CreateWindow({
     Topbar = { Height = 44, ButtonsType = "Default" }
 })
 NaviHub:SetSize(UDim2.fromOffset(580, 460))
-NaviUI:SetTheme("Red")
+pcall(function() NaviUI:SetTheme("Red") end)
 
 -- Notificaciones globales
 local function Notify(title, content, duration)
@@ -90,51 +90,49 @@ AutoFarm:Toggle({
     Default = false,
     Callback = function(v)
         autoFarmEnabled = v
-        Notify("Navi Hub", v and "Farm Auto ACTIVADO" or "Farm Auto DESACTIVADO")
+        pcall(function() Notify("Navi Hub", v and "Farm Auto ACTIVADO" or "Farm Auto DESACTIVADO") end)
         if v then
             task.spawn(function()
                 while autoFarmEnabled do
-                    if estaEnLobby and estaEnLobby() then
-                        task.wait(1)
-                        continue
-                    end
-                    local char = LP.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    if not hrp or not hum or hum.Health <= 0 then
-                        task.wait(0.4)
-                        continue
-                    end
+                    task.wait(0.2)
+                    local success, err = pcall(function()
+                        local Players = game:GetService("Players")
+                        local LP = Players.LocalPlayer
+                        local char = LP.Character
+                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                        local hum = char and char:FindFirstChildOfClass("Humanoid")
+                        if not hrp or not hum or hum.Health <= 0 then return end
 
-                    -- Buscar enemigo más cercano válido
-                    local closest, dist = nil, 9999
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p ~= LP and esEnemigoValido and esEnemigoValido(p) and p.Character then
-                            local ehrp = p.Character:FindFirstChild("HumanoidRootPart")
-                            if ehrp then
-                                local d = (ehrp.Position - hrp.Position).Magnitude
-                                if d < dist then
-                                    dist = d
-                                    closest = ehrp
+                        local closest, dist = nil, 9999
+                        for _, p in ipairs(Players:GetPlayers()) do
+                            if p ~= LP and p.Character then
+                                local ehrp = p.Character:FindFirstChild("HumanoidRootPart")
+                                local ehum = p.Character:FindFirstChildOfClass("Humanoid")
+                                if ehrp and ehum and ehum.Health > 0 then
+                                    local d = (ehrp.Position - hrp.Position).Magnitude
+                                    if d < dist and d > 3 then
+                                        dist = d
+                                        closest = ehrp
+                                    end
                                 end
                             end
                         end
-                    end
 
-                    if closest then
-                        local dir = (closest.Position - hrp.Position)
-                        dir = Vector3.new(dir.X, 0, dir.Z)
-                        if dir.Magnitude > 4 then
-                            hum:MoveTo(hrp.Position + dir.Unit * math.min(dir.Magnitude, 12))
-                            hum.WalkSpeed = autoFarmSpeed
+                        if closest then
+                            local dir = (closest.Position - hrp.Position)
+                            dir = Vector3.new(dir.X, 0, dir.Z)
+                            if dir.Magnitude > 4 then
+                                hum:MoveTo(hrp.Position + dir.Unit * math.min(dir.Magnitude, 12))
+                                hum.WalkSpeed = autoFarmSpeed
+                            end
                         end
-                    end
-                    task.wait(0.18)
+                    end)
                 end
-                -- restaurar walkspeed al desactivar
-                local char = LP.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed = 16 end
+                pcall(function()
+                    local char = game.Players.LocalPlayer.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if hum then hum.WalkSpeed = 16 end
+                end)
             end)
         end
     end
@@ -153,14 +151,17 @@ AutoFarm:Toggle({
     Default = false,
     Callback = function(v)
         autoCollectCoins = v
+        pcall(function() Notify("Navi Hub", v and "Auto Collect ACTIVADO" or "Auto Collect DESACTIVADO") end)
         if v then
             task.spawn(function()
                 while autoCollectCoins do
                     pcall(function()
+                        local LP = game.Players.LocalPlayer
+                        local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then return end
                         for _, obj in ipairs(workspace:GetDescendants()) do
                             if obj:IsA("BasePart") and (obj.Name:lower():find("coin") or obj.Name:lower():find("cash") or obj.Name:lower():find("money") or obj.Name:lower():find("orb")) then
-                                local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                                if hrp and (obj.Position - hrp.Position).Magnitude < 80 then
+                                if (obj.Position - hrp.Position).Magnitude < 80 then
                                     pcall(function()
                                         firetouchinterest(hrp, obj, 0)
                                         task.wait()
@@ -630,7 +631,7 @@ Settings:Dropdown({
     Values = {"Dark", "Light", "Midnight", "Red", "Rose", "Indigo", "Amber", "Violet", "Emerald"},
     Value = "Red",
     Callback = function(v)
-        NaviUI:SetTheme(v)
+        pcall(function() NaviUI:SetTheme(v) end)
     end
 })
 
@@ -1591,29 +1592,32 @@ Visuales:Colorpicker({
 task.spawn(function()
     while task.wait(0.3) do
         if skeletonESPEnabled then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LP then
-                    local char = p.Character
-                    local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    local dead = char and serverDeadCharacters[char] == true
-                    if char and hum and hum.Health > 0 and not dead and char:FindFirstChild("HumanoidRootPart") then
-                        -- Solo enemigos si la función existe, si no muestra a todos
-                        local isEnemyOk = true
-                        if esEnemigoValido then
-                            isEnemyOk = esEnemigoValido(p)
-                        end
-                        if isEnemyOk then
-                            if not activeSkeletons[p] then
-                                createSkeletonFor(p, char)
+            local ok, err = pcall(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer then
+                        local char = p.Character
+                        local hum = char and char:FindFirstChildOfClass("Humanoid")
+                        local dead = char and serverDeadCharacters[char] == true
+                        if char and hum and hum.Health > 0 and not dead and char:FindFirstChild("HumanoidRootPart") then
+                            local isEnemyOk = true
+                            if esEnemigoValido then
+                                isEnemyOk = esEnemigoValido(p)
+                            end
+                            if isEnemyOk then
+                                if not activeSkeletons[p] then
+                                    createSkeletonFor(p, char)
+                                end
+                            else
+                                clearSkeleton(p)
                             end
                         else
                             clearSkeleton(p)
                         end
-                    else
-                        clearSkeleton(p)
                     end
                 end
-            end
+            end)
         else
             for p, _ in pairs(activeSkeletons) do
                 clearSkeleton(p)
